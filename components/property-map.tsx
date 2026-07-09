@@ -1,7 +1,15 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { MapContainer, Marker, Polygon, Popup, TileLayer, Tooltip } from "react-leaflet"
+import {
+  MapContainer,
+  Marker,
+  Polygon,
+  Popup,
+  TileLayer,
+  Tooltip,
+  useMap,
+} from "react-leaflet"
 import L from "leaflet"
 import { Crosshair, Layers, Locate, Plus, Minus } from "lucide-react"
 import { MAP_CENTER, planningZones, layerMeta, properties } from "@/lib/mock-data"
@@ -60,27 +68,136 @@ function markerIcon(p: Property, active: boolean) {
   })
 }
 
-function MapController({ map }: { map: L.Map | null }) {
+function MapController() {
+  const map = useMap()
   const { selectedId } = useN3X7()
+
   useEffect(() => {
-    if (!map || !selectedId) return
+    // Ensure Leaflet measures the container after layout settles.
+    const t = setTimeout(() => map.invalidateSize(), 150)
+    const el = map.getContainer()
+    const ro = new ResizeObserver(() => map.invalidateSize())
+    ro.observe(el)
+    return () => {
+      clearTimeout(t)
+      ro.disconnect()
+    }
+  }, [map])
+
+  useEffect(() => {
+    if (!selectedId) return
     const p = properties.find((x) => x.id === selectedId)
     if (p) map.flyTo([p.lat, p.lng], 16, { duration: 0.8 })
   }, [map, selectedId])
   return null
 }
 
+function MapControls() {
+  const map = useMap()
+  return (
+    <div className="absolute top-4 right-4 z-[500] flex flex-col gap-2">
+      <div className="glass flex flex-col overflow-hidden rounded-xl">
+        <button
+          onClick={() => map.zoomIn()}
+          className="flex size-9 items-center justify-center text-foreground transition-colors hover:bg-accent"
+          aria-label="Zoom in"
+        >
+          <Plus className="size-4" />
+        </button>
+        <div className="h-px bg-border" />
+        <button
+          onClick={() => map.zoomOut()}
+          className="flex size-9 items-center justify-center text-foreground transition-colors hover:bg-accent"
+          aria-label="Zoom out"
+        >
+          <Minus className="size-4" />
+        </button>
+      </div>
+      <button
+        onClick={() => map.flyTo(MAP_CENTER, 15, { duration: 0.8 })}
+        className="glass flex size-9 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-accent"
+        aria-label="Recenter on search area"
+        title="Search location"
+      >
+        <Crosshair className="size-4 text-primary" />
+      </button>
+      <button
+        onClick={() => map.locate({ setView: true, maxZoom: 16 })}
+        className="glass flex size-9 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-accent"
+        aria-label="Use current location"
+        title="Current location"
+      >
+        <Locate className="size-4" />
+      </button>
+    </div>
+  )
+}
+
+function MapLegend() {
+  const { layers } = useN3X7()
+  const [showLegend, setShowLegend] = useState(true)
+  const legendItems = layerMeta.filter(
+    (l) => layers[l.id as keyof typeof layers],
+  )
+
+  return (
+    <div className="absolute bottom-4 left-4 z-[500]">
+      {showLegend ? (
+        <div className="glass w-56 rounded-xl p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-foreground uppercase">
+              <Layers className="size-3.5 text-primary" />
+              Map Legend
+            </span>
+            <button
+              onClick={() => setShowLegend(false)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Hide legend"
+            >
+              <Minus className="size-3.5" />
+            </button>
+          </div>
+          <ul className="space-y-1.5">
+            {legendItems.map((l) => (
+              <li
+                key={l.id}
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <span
+                  className="size-3 shrink-0 rounded-[4px]"
+                  style={{
+                    backgroundColor:
+                      l.id === "listings"
+                        ? "transparent"
+                        : `${layerColors[l.id]}33`,
+                    border: `1.5px solid ${l.id === "listings" ? "#4aa8ff" : layerColors[l.id]}`,
+                  }}
+                />
+                {l.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowLegend(true)}
+          className="glass flex size-9 items-center justify-center rounded-xl text-foreground hover:bg-accent"
+          aria-label="Show legend"
+        >
+          <Layers className="size-4 text-primary" />
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function PropertyMap() {
   const { layers, openProperty, selectedId } = useN3X7()
-  const [map, setMap] = useState<L.Map | null>(null)
-  const [showLegend, setShowLegend] = useState(true)
 
   const visibleZones = useMemo(
     () => planningZones.filter((z) => layers[z.layer]),
     [layers],
   )
-
-  const legendItems = layerMeta.filter((l) => layers[l.id as keyof typeof layers])
 
   return (
     <div className="relative h-full w-full">
@@ -88,13 +205,12 @@ export default function PropertyMap() {
         center={MAP_CENTER}
         zoom={15}
         zoomControl={false}
-        ref={setMap}
         className="h-full w-full"
         attributionControl
       >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; OpenStreetMap &copy; CARTO'
+          attribution="&copy; OpenStreetMap &copy; CARTO"
         />
 
         {visibleZones.map((zone) => (
@@ -158,96 +274,10 @@ export default function PropertyMap() {
             </Marker>
           ))}
 
-        <MapController map={map} />
+        <MapController />
+        <MapControls />
+        <MapLegend />
       </MapContainer>
-
-      {/* Zoom + location controls */}
-      <div className="absolute top-4 right-4 z-[500] flex flex-col gap-2">
-        <div className="glass flex flex-col overflow-hidden rounded-xl">
-          <button
-            onClick={() => map?.zoomIn()}
-            className="flex size-9 items-center justify-center text-foreground transition-colors hover:bg-accent"
-            aria-label="Zoom in"
-          >
-            <Plus className="size-4" />
-          </button>
-          <div className="h-px bg-border" />
-          <button
-            onClick={() => map?.zoomOut()}
-            className="flex size-9 items-center justify-center text-foreground transition-colors hover:bg-accent"
-            aria-label="Zoom out"
-          >
-            <Minus className="size-4" />
-          </button>
-        </div>
-        <button
-          onClick={() => map?.flyTo(MAP_CENTER, 15, { duration: 0.8 })}
-          className="glass flex size-9 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-accent"
-          aria-label="Recenter on search area"
-          title="Search location"
-        >
-          <Crosshair className="size-4 text-primary" />
-        </button>
-        <button
-          onClick={() =>
-            map?.locate({ setView: true, maxZoom: 16 })
-          }
-          className="glass flex size-9 items-center justify-center rounded-xl text-foreground transition-colors hover:bg-accent"
-          aria-label="Use current location"
-          title="Current location"
-        >
-          <Locate className="size-4" />
-        </button>
-      </div>
-
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 z-[500]">
-        {showLegend ? (
-          <div className="glass w-56 rounded-xl p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-foreground uppercase">
-                <Layers className="size-3.5 text-primary" />
-                Map Legend
-              </span>
-              <button
-                onClick={() => setShowLegend(false)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Hide legend"
-              >
-                <Minus className="size-3.5" />
-              </button>
-            </div>
-            <ul className="space-y-1.5">
-              {legendItems.map((l) => (
-                <li
-                  key={l.id}
-                  className="flex items-center gap-2 text-xs text-muted-foreground"
-                >
-                  <span
-                    className="size-3 shrink-0 rounded-[4px]"
-                    style={{
-                      backgroundColor:
-                        l.id === "listings"
-                          ? "transparent"
-                          : `${layerColors[l.id]}33`,
-                      border: `1.5px solid ${l.id === "listings" ? "#4aa8ff" : layerColors[l.id]}`,
-                    }}
-                  />
-                  {l.label}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowLegend(true)}
-            className="glass flex size-9 items-center justify-center rounded-xl text-foreground hover:bg-accent"
-            aria-label="Show legend"
-          >
-            <Layers className="size-4 text-primary" />
-          </button>
-        )}
-      </div>
     </div>
   )
 }

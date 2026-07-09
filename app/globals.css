@@ -123,6 +123,15 @@
   background: oklch(0.17 0.012 255);
   font-family: var(--font-sans);
 }
+/* Undo Tailwind preflight img resets that break Leaflet tile sizing */
+.leaflet-container img {
+  max-width: none !important;
+  height: auto;
+}
+.leaflet-tile {
+  width: 256px !important;
+  height: 256px !important;
+}
 .leaflet-control-attribution {
   background: rgba(20, 24, 33, 0.7) !important;
   color: oklch(0.6 0.02 256) !important;

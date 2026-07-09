@@ -18,7 +18,7 @@ const swatch: Record<string, string> = {
 
 export function LayerControls({ className }: { className?: string }) {
   const { layers, toggleLayer } = useN3X7()
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
 
   return (
     <div className={cn("glass w-64 overflow-hidden rounded-xl", className)}>
