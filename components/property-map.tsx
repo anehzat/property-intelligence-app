@@ -70,7 +70,7 @@ function markerIcon(p: Property, active: boolean) {
 
 function MapController() {
   const map = useMap()
-  const { selectedId } = useN3X7()
+  const { selectedId, flyTarget } = useN3X7()
 
   useEffect(() => {
     // Ensure Leaflet measures the container after layout settles.
@@ -89,6 +89,10 @@ function MapController() {
     const p = properties.find((x) => x.id === selectedId)
     if (p) map.flyTo([p.lat, p.lng], 16, { duration: 0.8 })
   }, [map, selectedId])
+
+  useEffect(() => {
+    if (flyTarget) map.flyTo(flyTarget.center, flyTarget.zoom, { duration: 0.9 })
+  }, [map, flyTarget])
   return null
 }
 
@@ -192,7 +196,7 @@ function MapLegend() {
 }
 
 export default function PropertyMap() {
-  const { layers, openProperty, selectedId } = useN3X7()
+  const { layers, openProperty, selectedId, filteredProperties } = useN3X7()
 
   const visibleZones = useMemo(
     () => planningZones.filter((z) => layers[z.layer]),
@@ -208,9 +212,18 @@ export default function PropertyMap() {
         className="h-full w-full"
         attributionControl
       >
+        {/* CARTO basemaps now require an API key; Esri Dark Gray Canvas is keyless. */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution="&copy; OpenStreetMap &copy; CARTO"
+          url="https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          attribution="Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
+          maxNativeZoom={16}
+          maxZoom={19}
+        />
+        <TileLayer
+          url="https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          maxNativeZoom={16}
+          maxZoom={19}
+          zIndex={2}
         />
 
         {visibleZones.map((zone) => (
@@ -234,7 +247,7 @@ export default function PropertyMap() {
         ))}
 
         {layers.listings &&
-          properties.map((p) => (
+          filteredProperties.map((p) => (
             <Marker
               key={p.id}
               position={[p.lat, p.lng]}
