@@ -62,3 +62,7 @@ export function formatRelative(iso: string, now: number = Date.now()): string {
   const d = Math.round(h / 24)
   return `${d} day${d === 1 ? "" : "s"} ago`
 }
+
+export function formatDistance(m: number): string {
+  return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`
+}

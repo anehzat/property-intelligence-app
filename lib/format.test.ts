@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { formatRelative, statusLabel } from "./format.ts"
+import { formatDistance, formatRelative, statusLabel } from "./format.ts"
 
 test("formatRelative buckets", () => {
   const now = Date.parse("2026-10-16T10:00:00Z")
@@ -18,4 +18,10 @@ test("statusLabel covers every status", () => {
     "under-offer": "Under offer",
     sold: "Sold",
   })
+})
+
+test("formatDistance uses metres below 1km, km above", () => {
+  assert.equal(formatDistance(170), "170m")
+  assert.equal(formatDistance(1080), "1.1km")
+  assert.equal(formatDistance(5040), "5.0km")
 })

@@ -13,7 +13,13 @@ import {
   TrendingUp,
 } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
-import { formatPrice, opportunityStyle, statusLabel, typeLabel } from "@/lib/format"
+import {
+  formatDistance,
+  formatPrice,
+  opportunityStyle,
+  statusLabel,
+  typeLabel,
+} from "@/lib/format"
 import { ScoreRing, ScoreBar } from "./score-card"
 import { ContractRequestPanel } from "./contract-request"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
@@ -180,7 +186,7 @@ export function PropertyDrawer() {
                         p.tod ? "text-success" : "text-foreground",
                       )}
                     >
-                      {p.tod ? "INSIDE" : `${p.todDistance}m`}
+                      {p.tod ? "INSIDE" : formatDistance(p.todDistance)}
                     </p>
                   </div>
                   <div className="glass rounded-xl p-3">

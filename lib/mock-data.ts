@@ -54,7 +54,7 @@ export const properties: Property[] = [
   listing({
     id: "g1", address: "142 Glebe Point Road", suburb: "Glebe", price: 2450000, type: "house",
     beds: 4, baths: 2, parking: 1, landSize: 310, frontage: 9, status: "for-sale", score: 86,
-    lat: -33.8775, lng: 151.1858, lmr: true, tod: false, todDistance: 350,
+    lat: -33.8775, lng: 151.1858, lmr: true, tod: false, todDistance: 5040,
     insights: ["Inside LMR housing area", "Light rail 350m", "Main-road exposure", "Strong rental demand"],
     breakdown: { planningOpportunity: 88, marketDemand: 86, transportAccess: 78, riskScore: 25 },
     image: "/property-terrace-house.png", agent: agents.olivia,
@@ -63,7 +63,7 @@ export const properties: Property[] = [
   listing({
     id: "g2", address: "27 Hereford Street", suburb: "Glebe", price: 1890000, type: "house",
     beds: 3, baths: 1, parking: 0, landSize: 180, frontage: 6, status: "for-sale", score: 78,
-    lat: -33.8812, lng: 151.1836, lmr: true, tod: false, todDistance: 520,
+    lat: -33.8812, lng: 151.1836, lmr: true, tod: false, todDistance: 4580,
     insights: ["Inside LMR housing area", "Narrow 6m frontage", "Heritage streetscape"],
     breakdown: { planningOpportunity: 72, marketDemand: 84, transportAccess: 70, riskScore: 35 },
     image: "/property-north-bondi-house.png", agent: agents.olivia,
@@ -72,7 +72,7 @@ export const properties: Property[] = [
   listing({
     id: "g3", address: "61 Wigram Road", suburb: "Glebe", price: 3350000, type: "house",
     beds: 5, baths: 3, parking: 2, landSize: 640, frontage: 21, status: "for-sale", score: 88,
-    lat: -33.8791, lng: 151.178, lmr: true, tod: false, todDistance: 600,
+    lat: -33.8791, lng: 151.178, lmr: true, tod: false, todDistance: 4490,
     insights: ["Inside LMR housing area", "21m frontage", "Large 640m² lot", "Dual-occupancy potential"],
     breakdown: { planningOpportunity: 90, marketDemand: 82, transportAccess: 68, riskScore: 22 },
     image: "/property-beach-house.png", agent: agents.olivia,
@@ -81,7 +81,7 @@ export const properties: Property[] = [
   listing({
     id: "g4", address: "9 Toxteth Road", suburb: "Glebe", price: 4100000, type: "house",
     beds: 5, baths: 3, parking: 2, landSize: 720, frontage: 24, status: "under-offer", score: 84,
-    lat: -33.883, lng: 151.1802, lmr: true, tod: false, todDistance: 750,
+    lat: -33.883, lng: 151.1802, lmr: true, tod: false, todDistance: 4240,
     insights: ["Inside LMR housing area", "24m frontage", "Under offer"],
     breakdown: { planningOpportunity: 86, marketDemand: 80, transportAccess: 62, riskScore: 30 },
     image: "/property-backyard.png", agent: agents.olivia,
@@ -90,7 +90,7 @@ export const properties: Property[] = [
   listing({
     id: "g5", address: "15 Mitchell Street", suburb: "Glebe", price: 1150000, type: "apartment",
     beds: 2, baths: 1, parking: 1, landSize: 0, frontage: 0, status: "for-sale", score: 70,
-    lat: -33.8752, lng: 151.188, lmr: true, tod: false, todDistance: 280,
+    lat: -33.8752, lng: 151.188, lmr: true, tod: false, todDistance: 5360,
     insights: ["Strata apartment", "Light rail 280m", "No redevelopment upside"],
     breakdown: { planningOpportunity: 55, marketDemand: 80, transportAccess: 82, riskScore: 30 },
     image: "/property-apartment-bondi.png", agent: agents.olivia,
@@ -99,7 +99,7 @@ export const properties: Property[] = [
   listing({
     id: "g6", address: "88 Bridge Road", suburb: "Glebe", price: 6800000, type: "development",
     beds: 0, baths: 0, parking: 0, landSize: 980, frontage: 32, status: "for-sale", score: 90,
-    lat: -33.8818, lng: 151.1885, lmr: true, tod: false, todDistance: 400,
+    lat: -33.8818, lng: 151.1885, lmr: true, tod: false, todDistance: 4820,
     insights: ["Inside LMR housing area", "32m frontage", "Corner site", "Mid-rise potential"],
     breakdown: { planningOpportunity: 93, marketDemand: 84, transportAccess: 76, riskScore: 28 },
     image: "/property-mixed-use-site.png", agent: agents.olivia,

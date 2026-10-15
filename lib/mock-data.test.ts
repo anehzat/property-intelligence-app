@@ -40,3 +40,10 @@ test("Glebe + TOD yields nothing", () => {
     0,
   )
 })
+
+test("todDistance matches the distance to the nearest TOD area (within 60m)", () => {
+  for (const p of properties) {
+    const d = Math.min(...todAreas.map((a) => distanceMeters([p.lat, p.lng], a.center)))
+    assert.ok(Math.abs(p.todDistance - d) <= 60, `${p.id} todDistance ${p.todDistance} vs ${Math.round(d)}m`)
+  }
+})
