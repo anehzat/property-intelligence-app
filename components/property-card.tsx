@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import type { Property } from "@/lib/types"
 import { useN3X7 } from "@/lib/store"
-import { formatPrice, opportunityStyle, typeLabel } from "@/lib/format"
+import { formatPrice, opportunityStyle, statusLabel, typeLabel } from "@/lib/format"
 import { ScoreRing } from "./score-card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -52,9 +52,21 @@ export function PropertyCard({ property }: { property: Property }) {
             <Bookmark className={cn("size-4", saved && "fill-current")} />
           </button>
         </div>
-        <span className="absolute bottom-3 left-3 rounded-md bg-background/70 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
-          {typeLabel[property.type]}
-        </span>
+        <div className="absolute bottom-3 left-3 flex gap-1.5">
+          <span className="rounded-md bg-background/70 px-2 py-0.5 text-[11px] font-medium text-foreground backdrop-blur">
+            {typeLabel[property.type]}
+          </span>
+          {property.tod && (
+            <span className="rounded-md bg-primary/80 px-2 py-0.5 text-[11px] font-semibold text-primary-foreground backdrop-blur">
+              TOD
+            </span>
+          )}
+          {property.status !== "for-sale" && (
+            <span className="rounded-md bg-background/70 px-2 py-0.5 text-[11px] font-medium text-muted-foreground backdrop-blur">
+              {statusLabel[property.status]}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3 p-4">
@@ -89,11 +101,10 @@ export function PropertyCard({ property }: { property: Property }) {
           <span className="flex items-center gap-1">
             <Car className="size-3.5" /> {property.parking}
           </span>
-          {property.landSize > 0 && (
-            <span className="ml-auto font-mono">
-              {property.landSize}m²
-            </span>
-          )}
+          <span className="ml-auto flex items-center gap-2 font-mono">
+            {property.frontage > 0 && <span>{property.frontage}m front</span>}
+            {property.landSize > 0 && <span>{property.landSize}m²</span>}
+          </span>
         </div>
 
         <ul className="space-y-1.5">

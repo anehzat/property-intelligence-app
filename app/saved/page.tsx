@@ -1,16 +1,23 @@
 "use client"
 
-import { Bookmark, Calendar, MapPin, Sparkles, Trash2 } from "lucide-react"
+import { Bookmark, Calendar, FileCheck, MapPin, Sparkles, Trash2 } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
-import { formatPrice, opportunityStyle, typeLabel } from "@/lib/format"
+import { formatPrice, formatRelative, opportunityStyle, typeLabel } from "@/lib/format"
 import { ScoreRing } from "@/components/score-card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export default function SavedPage() {
-  const { properties, savedIds, toggleSave, openProperty, setAiContextId, askAi } =
-    useN3X7()
+  const {
+    properties,
+    savedIds,
+    toggleSave,
+    openProperty,
+    setAiContextId,
+    askAi,
+    contractRequests,
+  } = useN3X7()
   const saved = properties.filter((p) => savedIds.includes(p.id))
 
   return (
@@ -97,6 +104,13 @@ export default function SavedPage() {
                         <Calendar className="size-3" />
                         Saved {p.savedDate ?? "recently"}
                       </span>
+                      {contractRequests[p.id] && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
+                          <FileCheck className="size-3" />
+                          Contract requested ·{" "}
+                          {formatRelative(contractRequests[p.id].requestedAt)}
+                        </span>
+                      )}
                       <div className="ml-auto flex gap-1.5">
                         <Button
                           size="sm"

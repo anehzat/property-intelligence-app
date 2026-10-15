@@ -5,16 +5,17 @@ import {
   Bath,
   BedDouble,
   Bookmark,
-  Car,
   LandPlot,
   MapPin,
+  Ruler,
   Sparkles,
   TrainFront,
   TrendingUp,
 } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
-import { formatPrice, opportunityStyle, typeLabel } from "@/lib/format"
+import { formatPrice, opportunityStyle, statusLabel, typeLabel } from "@/lib/format"
 import { ScoreRing, ScoreBar } from "./score-card"
+import { ContractRequestPanel } from "./contract-request"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -99,6 +100,16 @@ export function PropertyDrawer() {
                   <p className="mt-2 font-mono text-2xl font-semibold text-foreground">
                     {formatPrice(p.price)}
                   </p>
+                  <span
+                    className={cn(
+                      "mt-1.5 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      p.status === "for-sale"
+                        ? "bg-success/15 text-success"
+                        : "bg-secondary text-muted-foreground",
+                    )}
+                  >
+                    {statusLabel[p.status]}
+                  </span>
                 </div>
                 <div className="flex flex-col items-center">
                   <ScoreRing score={p.score} size={68} stroke={6} />
@@ -113,11 +124,15 @@ export function PropertyDrawer() {
                 {[
                   { icon: BedDouble, label: "Beds", value: p.beds },
                   { icon: Bath, label: "Baths", value: p.baths },
-                  { icon: Car, label: "Parking", value: p.parking },
                   {
                     icon: LandPlot,
                     label: "Land",
                     value: p.landSize ? `${p.landSize}m²` : "—",
+                  },
+                  {
+                    icon: Ruler,
+                    label: "Frontage",
+                    value: p.frontage ? `${p.frontage}m` : "—",
                   },
                 ].map(({ icon: Icon, label, value }) => (
                   <div
@@ -159,8 +174,13 @@ export function PropertyDrawer() {
                     <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <TrainFront className="size-3" /> TOD
                     </p>
-                    <p className="mt-1 font-mono text-sm font-semibold text-foreground">
-                      {p.todDistance}m
+                    <p
+                      className={cn(
+                        "mt-1 font-mono text-sm font-semibold",
+                        p.tod ? "text-success" : "text-foreground",
+                      )}
+                    >
+                      {p.tod ? "INSIDE" : `${p.todDistance}m`}
                     </p>
                   </div>
                   <div className="glass rounded-xl p-3">
@@ -226,6 +246,8 @@ export function PropertyDrawer() {
                   ))}
                 </ul>
               </div>
+
+              <ContractRequestPanel key={p.id} property={p} />
             </div>
 
             <div className="sticky bottom-0 flex gap-2 border-t border-border bg-background/90 p-4 backdrop-blur">
