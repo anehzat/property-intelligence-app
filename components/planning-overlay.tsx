@@ -13,6 +13,13 @@ interface Frame {
   bounds: LatLngBoundsExpression
 }
 
+interface Shot {
+  url: string
+  bounds: LatLngBoundsExpression
+}
+
+type Status = "ok" | "error"
+
 function frameFor(map: LeafletMap): Frame | null {
   const size = map.getSize()
   if (size.x === 0 || size.y === 0) return null
@@ -30,13 +37,64 @@ function frameFor(map: LeafletMap): Frame | null {
 }
 
 /**
- * Live NSW LMR/TOD layers rendered from the ArcGIS export endpoint for the current view.
- * LMR and TOD are separate images so the TOD parcels stay legible on top of LMR.
+ * One NSW layer group, double-buffered: the image for a new view loads invisibly and only
+ * replaces the visible one once loaded, so a stale image is never stretched over a new view.
  */
+function LiveLayer({
+  frame,
+  ids,
+  opacity,
+  zIndex,
+  onStatus,
+}: {
+  frame: Frame
+  ids: number[]
+  opacity: number
+  zIndex: number
+  onStatus: (status: Status) => void
+}) {
+  const next: Shot = {
+    url: buildExportUrl(frame.bbox, frame.width, frame.height, ids),
+    bounds: frame.bounds,
+  }
+  const [shown, setShown] = useState<Shot | null>(null)
+
+  return (
+    <>
+      {shown && (
+        <ImageOverlay
+          key={`shown:${shown.url}`}
+          url={shown.url}
+          bounds={shown.bounds}
+          opacity={opacity}
+          zIndex={zIndex}
+        />
+      )}
+      {shown?.url !== next.url && (
+        <ImageOverlay
+          key={`next:${next.url}`}
+          url={next.url}
+          bounds={next.bounds}
+          opacity={0}
+          zIndex={zIndex}
+          eventHandlers={{
+            load: () => {
+              setShown(next)
+              onStatus("ok")
+            },
+            error: () => onStatus("error"),
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+/** Live NSW LMR/TOD layers rendered from the ArcGIS export endpoint for the current view. */
 export function PlanningOverlay({
   onStatus,
 }: {
-  onStatus: (status: "ok" | "error") => void
+  onStatus: (status: Status) => void
 }) {
   const map = useMap()
   const { layers } = useN3X7()
@@ -52,6 +110,7 @@ export function PlanningOverlay({
   })
 
   if (!frame) return null
+  // LMR and TOD are separate images so the TOD parcels stay legible on top of LMR.
   const groups = [
     { key: "lmr", ids: planningLayerIds({ lmr: layers.lmr, tod: false }), opacity: 0.4, zIndex: 240 },
     { key: "tod", ids: planningLayerIds({ lmr: false, tod: layers.tod }), opacity: 0.85, zIndex: 260 },
@@ -62,16 +121,13 @@ export function PlanningOverlay({
       {groups
         .filter((g) => g.ids.length > 0)
         .map((g) => (
-          <ImageOverlay
+          <LiveLayer
             key={g.key}
-            url={buildExportUrl(frame.bbox, frame.width, frame.height, g.ids)}
-            bounds={frame.bounds}
+            frame={frame}
+            ids={g.ids}
             opacity={g.opacity}
             zIndex={g.zIndex}
-            eventHandlers={{
-              load: () => onStatus("ok"),
-              error: () => onStatus("error"),
-            }}
+            onStatus={onStatus}
           />
         ))}
     </>
