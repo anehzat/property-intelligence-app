@@ -156,9 +156,12 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  // Signing out resets the demo session so each walkthrough starts clean.
   const signOut = useCallback(() => {
     setDrawerOpen(false)
     setUser(null)
+    setSavedIds([])
+    setContractRequests({})
   }, [])
 
   const askAi = useCallback((question: string) => {
