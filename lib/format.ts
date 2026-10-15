@@ -1,4 +1,4 @@
-import type { Opportunity, PropertyType } from "./types"
+import type { ListingStatus, Opportunity, PropertyType } from "./types"
 
 export function formatPrice(n: number) {
   return new Intl.NumberFormat("en-AU", {
@@ -44,4 +44,21 @@ export const typeLabel: Record<PropertyType, string> = {
   house: "House",
   apartment: "Apartment",
   development: "Development",
+}
+
+export const statusLabel: Record<ListingStatus, string> = {
+  "for-sale": "For sale",
+  "under-offer": "Under offer",
+  sold: "Sold",
+}
+
+export function formatRelative(iso: string, now: number = Date.now()): string {
+  const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000))
+  if (s < 60) return "just now"
+  const m = Math.round(s / 60)
+  if (m < 60) return `${m} min ago`
+  const h = Math.round(m / 60)
+  if (h < 24) return `${h} h ago`
+  const d = Math.round(h / 24)
+  return `${d} day${d === 1 ? "" : "s"} ago`
 }
