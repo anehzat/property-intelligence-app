@@ -78,7 +78,7 @@ The mock `tod` / `lmr` flags on each listing are hand-assigned to match the real
 ### 4. Save and request contract (`components/property-drawer.tsx`, `app/saved/page.tsx`)
 
 - The drawer shows frontage, status and an agent card (name, agency, phone).
-- Add a **Request contract** button. It opens a dialog (shadcn `dialog`, base-nova) with fields prefilled from the user and agent, plus an optional message.
+- Add a **Request contract** button. It expands an inline form inside the drawer (chosen over a nested dialog during planning). The form is prefilled from the user and agent, plus an optional message.
 - Submitting the dialog:
   - waits about 800 ms to simulate the request;
   - sets `contractRequests[id] = { requestedAt }` in the store;
