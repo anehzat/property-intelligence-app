@@ -16,10 +16,12 @@ import { MAP_CENTER, planningZones, layerMeta, properties } from "@/lib/mock-dat
 import type { Property } from "@/lib/types"
 import { useN3X7 } from "@/lib/store"
 import { formatPriceShort } from "@/lib/format"
+import { cn } from "@/lib/utils"
+import { PlanningOverlay } from "./planning-overlay"
 
 const layerColors: Record<string, string> = {
-  lmr: "#4ade80",
-  tod: "#4aa8ff",
+  lmr: "#f2c98a",
+  tod: "#c39bd3",
   development: "#c084fc",
   constraints: "#f5c451",
 }
@@ -70,7 +72,7 @@ function markerIcon(p: Property, active: boolean) {
 
 function MapController() {
   const map = useMap()
-  const { selectedId } = useN3X7()
+  const { selectedId, flyTarget } = useN3X7()
 
   useEffect(() => {
     // Ensure Leaflet measures the container after layout settles.
@@ -89,6 +91,10 @@ function MapController() {
     const p = properties.find((x) => x.id === selectedId)
     if (p) map.flyTo([p.lat, p.lng], 16, { duration: 0.8 })
   }, [map, selectedId])
+
+  useEffect(() => {
+    if (flyTarget) map.flyTo(flyTarget.center, flyTarget.zoom, { duration: 0.9 })
+  }, [map, flyTarget])
   return null
 }
 
@@ -133,7 +139,11 @@ function MapControls() {
   )
 }
 
-function MapLegend() {
+function MapLegend({
+  overlayStatus,
+}: {
+  overlayStatus: "loading" | "ok" | "error"
+}) {
   const { layers } = useN3X7()
   const [showLegend, setShowLegend] = useState(true)
   const legendItems = layerMeta.filter(
@@ -177,6 +187,18 @@ function MapLegend() {
               </li>
             ))}
           </ul>
+          {(layers.lmr || layers.tod) && (
+            <p
+              className={cn(
+                "mt-2 border-t border-border pt-2 text-[10px]",
+                overlayStatus === "error" ? "text-warning" : "text-muted-foreground",
+              )}
+            >
+              {overlayStatus === "error"
+                ? "Live NSW layer unavailable — showing listings only"
+                : "LMR / TOD source: NSW DPHI ArcGIS (live)"}
+            </p>
+          )}
         </div>
       ) : (
         <button
@@ -192,7 +214,10 @@ function MapLegend() {
 }
 
 export default function PropertyMap() {
-  const { layers, openProperty, selectedId } = useN3X7()
+  const { layers, openProperty, selectedId, filteredProperties } = useN3X7()
+  const [overlayStatus, setOverlayStatus] = useState<"loading" | "ok" | "error">(
+    "loading",
+  )
 
   const visibleZones = useMemo(
     () => planningZones.filter((z) => layers[z.layer]),
@@ -208,10 +233,20 @@ export default function PropertyMap() {
         className="h-full w-full"
         attributionControl
       >
+        {/* CARTO basemaps now require an API key; Esri Dark Gray Canvas is keyless. */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution="&copy; OpenStreetMap &copy; CARTO"
+          url="https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          attribution="Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
+          maxNativeZoom={16}
+          maxZoom={19}
         />
+        <TileLayer
+          url="https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          maxNativeZoom={16}
+          maxZoom={19}
+          zIndex={2}
+        />
+        <PlanningOverlay onStatus={setOverlayStatus} />
 
         {visibleZones.map((zone) => (
           <Polygon
@@ -234,7 +269,7 @@ export default function PropertyMap() {
         ))}
 
         {layers.listings &&
-          properties.map((p) => (
+          filteredProperties.map((p) => (
             <Marker
               key={p.id}
               position={[p.lat, p.lng]}
@@ -276,7 +311,7 @@ export default function PropertyMap() {
 
         <MapController />
         <MapControls />
-        <MapLegend />
+        <MapLegend overlayStatus={overlayStatus} />
       </MapContainer>
     </div>
   )

@@ -4,13 +4,27 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react"
-import { properties as allProperties } from "./mock-data"
-import type { ChatMessage, LayerId, Property } from "./types"
-import { aiReply } from "./mock-data"
+import { properties as allProperties, suburbs, DEMO_USER, aiReply } from "./mock-data"
+import type {
+  ChatMessage,
+  ContractRequest,
+  DemoUser,
+  LayerId,
+  Property,
+} from "./types"
+import { defaultFilters, filterProperties, type Filters } from "./search"
+import { loadJSON, saveJSON } from "./persist"
+
+export interface FlyTarget {
+  center: [number, number]
+  zoom: number
+  key: number
+}
 
 interface N3X7State {
   properties: Property[]
@@ -31,27 +45,46 @@ interface N3X7State {
   askAi: (question: string) => void
   aiContextId: string | null
   setAiContextId: (id: string | null) => void
+  filters: Filters
+  setFilters: (patch: Partial<Filters>) => void
+  filteredProperties: Property[]
+  flyTarget: FlyTarget | null
+  contractRequests: Record<string, ContractRequest>
+  requestContract: (id: string, message: string) => Promise<void>
+  user: DemoUser | null
+  hydrated: boolean
+  signIn: (email: string) => void
+  signOut: () => void
 }
 
 const N3X7Context = createContext<N3X7State | null>(null)
 
+const KEYS = {
+  user: "n3x7.user",
+  saved: "n3x7.saved",
+  contracts: "n3x7.contracts",
+}
+
 let msgCounter = 0
 
 export function N3X7Provider({ children }: { children: ReactNode }) {
-  const [savedIds, setSavedIds] = useState<string[]>([
-    "p1",
-    "p2",
-    "p3",
-  ])
+  const [hydrated, setHydrated] = useState(false)
+  const [user, setUser] = useState<DemoUser | null>(null)
+  const [savedIds, setSavedIds] = useState<string[]>([])
+  const [contractRequests, setContractRequests] = useState<
+    Record<string, ContractRequest>
+  >({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [aiContextId, setAiContextId] = useState<string | null>(null)
+  const [filters, setFiltersState] = useState<Filters>(defaultFilters)
+  const [flyTarget, setFlyTarget] = useState<FlyTarget | null>(null)
   const [layers, setLayers] = useState<Record<LayerId, boolean>>({
     listings: true,
     lmr: true,
     tod: true,
-    development: true,
+    development: false,
     constraints: false,
   })
   const [chat, setChat] = useState<ChatMessage[]>([
@@ -59,9 +92,27 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       id: "seed-1",
       role: "assistant",
       content:
-        "Hi, I'm N3X7 — your AI property analyst. Ask me about zoning, LMR upside, or how suburbs compare. Select a property to give me more context.",
+        "Hi, I'm N3X7 — your AI property analyst. Ask me about TOD areas, LMR upside, frontage, or how suburbs compare. Select a property to give me more context.",
     },
   ])
+
+  // Restore demo session after mount (localStorage is browser-only).
+  useEffect(() => {
+    setUser(loadJSON<DemoUser | null>(KEYS.user, null))
+    setSavedIds(loadJSON<string[]>(KEYS.saved, []))
+    setContractRequests(loadJSON<Record<string, ContractRequest>>(KEYS.contracts, {}))
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (hydrated) saveJSON(KEYS.user, user)
+  }, [hydrated, user])
+  useEffect(() => {
+    if (hydrated) saveJSON(KEYS.saved, savedIds)
+  }, [hydrated, savedIds])
+  useEffect(() => {
+    if (hydrated) saveJSON(KEYS.contracts, contractRequests)
+  }, [hydrated, contractRequests])
 
   const toggleSave = useCallback((id: string) => {
     setSavedIds((prev) =>
@@ -79,6 +130,39 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
   }, [])
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+
+  const setFilters = useCallback((patch: Partial<Filters>) => {
+    setFiltersState((prev) => ({ ...prev, ...patch }))
+    if (patch.suburb) {
+      const s = suburbs.find((x) => x.name === patch.suburb)
+      if (s) setFlyTarget({ center: s.center, zoom: 15, key: Date.now() })
+    }
+  }, [])
+
+  const requestContract = useCallback(async (id: string, message: string) => {
+    await new Promise((r) => setTimeout(r, 800))
+    setContractRequests((prev) => ({
+      ...prev,
+      [id]: { requestedAt: new Date().toISOString(), message },
+    }))
+    setSavedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+  }, [])
+
+  const signIn = useCallback((email: string) => {
+    setUser({
+      email,
+      name: email === DEMO_USER.email ? DEMO_USER.name : email.split("@")[0],
+      role: DEMO_USER.role,
+    })
+  }, [])
+
+  // Signing out resets the demo session so each walkthrough starts clean.
+  const signOut = useCallback(() => {
+    setDrawerOpen(false)
+    setUser(null)
+    setSavedIds([])
+    setContractRequests({})
+  }, [])
 
   const askAi = useCallback((question: string) => {
     const q = question.trim()
@@ -103,6 +187,11 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     [selectedId],
   )
 
+  const filteredProperties = useMemo(
+    () => filterProperties(allProperties, filters),
+    [filters],
+  )
+
   const value = useMemo<N3X7State>(
     () => ({
       properties: allProperties,
@@ -123,6 +212,16 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       askAi,
       aiContextId,
       setAiContextId,
+      filters,
+      setFilters,
+      filteredProperties,
+      flyTarget,
+      contractRequests,
+      requestContract,
+      user,
+      hydrated,
+      signIn,
+      signOut,
     }),
     [
       savedIds,
@@ -138,6 +237,16 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       chat,
       askAi,
       aiContextId,
+      filters,
+      setFilters,
+      filteredProperties,
+      flyTarget,
+      contractRequests,
+      requestContract,
+      user,
+      hydrated,
+      signIn,
+      signOut,
     ],
   )
 

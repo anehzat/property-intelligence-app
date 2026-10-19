@@ -1,16 +1,18 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { ArrowUpRight, Search, Sparkles } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
-import { exampleSearches } from "@/lib/mock-data"
+import { exampleSearches, suburbs } from "@/lib/mock-data"
+import { parseSearch } from "@/lib/search"
 import { cn } from "@/lib/utils"
 
 export function SearchBar() {
-  const { query, setQuery, askAi } = useN3X7()
+  const { query, setQuery, askAi, setFilters } = useN3X7()
   const [open, setOpen] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   const wrapRef = useRef<HTMLDivElement>(null)
 
   function submit(value: string) {
@@ -18,6 +20,13 @@ export function SearchBar() {
     if (!q) return
     setQuery(q)
     setOpen(false)
+    // Searches naming a known suburb drive the Discover filters
+    const patch = parseSearch(q, suburbs)
+    if (patch) {
+      setFilters(patch)
+      if (pathname !== "/") router.push("/")
+      return
+    }
     // Natural-language questions route to the AI analyst
     if (/\b(find|show|ask|why|compare|explain|under|potential|growth)\b/i.test(q)) {
       askAi(q)

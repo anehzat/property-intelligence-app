@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils"
 
 const swatch: Record<string, string> = {
   listings: "#4aa8ff",
-  lmr: "#4ade80",
-  tod: "#4aa8ff",
+  lmr: "#f2c98a",
+  tod: "#c39bd3",
   development: "#c084fc",
   constraints: "#f5c451",
 }
