@@ -19,6 +19,7 @@ pnpm build
 pnpm start
 pnpm lint     # runs `eslint .`, but eslint is not a dependency and there is no config, so this fails as-is
 pnpm test     # node --test over lib/**/*.test.ts (Node 24 native TS)
+./deploy-prod.sh  # test, build and upload out/ to AWS Amplify production (needs the `n3x7` AWS profile)
 ```
 
 Tests use Node's built-in runner on the pure `lib/` modules. Run one file with `node --test lib/search.test.ts`. Modules imported by tests must only use `import type` for local types, and runtime imports need a `.ts` extension. `next.config.mjs` sets `typescript.ignoreBuildErrors: true`, so `pnpm build` does **not** catch type errors. Type-check explicitly with `pnpm exec tsc --noEmit`.
