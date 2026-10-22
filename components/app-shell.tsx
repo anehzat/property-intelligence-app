@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useN3X7 } from "@/lib/store"
+import { isLoginPath } from "@/lib/paths"
 import { Sidebar } from "./sidebar"
 import { TopHeader } from "./top-header"
 import { PropertyDrawer } from "./property-drawer"
@@ -11,7 +12,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, hydrated } = useN3X7()
   const pathname = usePathname()
   const router = useRouter()
-  const isLogin = pathname === "/login"
+  const isLogin = isLoginPath(pathname)
 
   useEffect(() => {
     if (!hydrated) return
