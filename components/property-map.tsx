@@ -13,7 +13,7 @@ import {
 import L from "leaflet"
 import { Crosshair, Layers, Locate, Plus, Minus } from "lucide-react"
 import { MAP_CENTER, planningZones, layerMeta, properties } from "@/lib/mock-data"
-import type { Property } from "@/lib/types"
+import type { LiveListing, Property } from "@/lib/types"
 import { useN3X7 } from "@/lib/store"
 import { formatPriceShort } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -70,9 +70,31 @@ function markerIcon(p: Property, active: boolean) {
   })
 }
 
+const LIVE_COLOR = "#4aa8ff"
+
+function liveMarkerIcon(l: LiveListing, active: boolean) {
+  const label = l.price !== null ? formatPriceShort(l.price) : (l.method ?? "For sale")
+  const html = `
+    <div style="transform: translate(-50%, -100%); position:relative; display:flex; flex-direction:column; align-items:center;">
+      <div style="display:flex; align-items:center; gap:5px; padding:4px 8px 4px 5px; border-radius:999px;
+        background:${active ? LIVE_COLOR : "rgba(28,33,43,0.92)"}; border:1.5px solid ${LIVE_COLOR};
+        box-shadow:0 4px 14px rgba(0,0,0,0.45); white-space:nowrap;">
+        <span style="display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:${LIVE_COLOR};">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+            stroke="#0f1319" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${typeSvg[l.type]}</svg>
+        </span>
+        <span style="font-family:var(--font-mono, monospace); font-size:11px; font-weight:700; color:${active ? "#0f1319" : "#fff"};">
+          ${label.replace(/</g, "&lt;")}
+        </span>
+      </div>
+      <div style="width:2px; height:9px; background:${LIVE_COLOR};"></div>
+    </div>`
+  return L.divIcon({ className: "n3x7-marker", html, iconSize: [0, 0], iconAnchor: [0, 0] })
+}
+
 function MapController() {
   const map = useMap()
-  const { selectedId, flyTarget } = useN3X7()
+  const { selectedId, flyTarget, selectedLive } = useN3X7()
 
   useEffect(() => {
     // Ensure Leaflet measures the container after layout settles.
@@ -95,6 +117,10 @@ function MapController() {
   useEffect(() => {
     if (flyTarget) map.flyTo(flyTarget.center, flyTarget.zoom, { duration: 0.9 })
   }, [map, flyTarget])
+
+  useEffect(() => {
+    if (selectedLive) map.flyTo([selectedLive.lat, selectedLive.lng], 16, { duration: 0.8 })
+  }, [map, selectedLive])
   return null
 }
 
@@ -214,7 +240,16 @@ function MapLegend({
 }
 
 export default function PropertyMap() {
-  const { layers, openProperty, selectedId, filteredProperties } = useN3X7()
+  const {
+    layers,
+    openProperty,
+    selectedId,
+    filteredProperties,
+    dataSource,
+    live,
+    openLive,
+    selectedLive,
+  } = useN3X7()
   const [overlayStatus, setOverlayStatus] = useState<"loading" | "ok" | "error">(
     "loading",
   )
@@ -269,6 +304,7 @@ export default function PropertyMap() {
         ))}
 
         {layers.listings &&
+          dataSource === "demo" &&
           filteredProperties.map((p) => (
             <Marker
               key={p.id}
@@ -307,6 +343,17 @@ export default function PropertyMap() {
                 </div>
               </Popup>
             </Marker>
+          ))}
+
+        {layers.listings &&
+          dataSource === "live" &&
+          live.listings.map((l) => (
+            <Marker
+              key={l.id}
+              position={[l.lat, l.lng]}
+              icon={liveMarkerIcon(l, selectedLive?.id === l.id)}
+              eventHandlers={{ click: () => openLive(l) }}
+            />
           ))}
 
         <MapController />

@@ -11,6 +11,8 @@ import {
   showsNoTodNotice,
 } from "@/lib/search"
 import { PropertyCard } from "./property-card"
+import { LivePanel } from "./live-panel"
+import { SourceSwitch } from "./source-switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
@@ -48,7 +50,7 @@ function Toggle({
 }
 
 export function DiscoveryPanel() {
-  const { filteredProperties, filters, setFilters } = useN3X7()
+  const { filteredProperties, filters, setFilters, dataSource } = useN3X7()
   const [chip, setChip] = useState<Chip>("all")
 
   const list = useMemo(() => {
@@ -66,6 +68,8 @@ export function DiscoveryPanel() {
     ? frontageOptions
     : [...frontageOptions, filters.minFrontage].sort((a, b) => a - b)
 
+  if (dataSource === "live") return <LivePanel />
+
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="shrink-0 space-y-3 border-b border-border px-4 py-4">
@@ -79,9 +83,7 @@ export function DiscoveryPanel() {
               {list.length} listings in {filters.suburb ?? "the Inner West"}
             </p>
           </div>
-          <span className="rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-            Demo listings
-          </span>
+          <SourceSwitch />
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
