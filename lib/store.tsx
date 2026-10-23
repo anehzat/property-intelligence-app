@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { properties as allProperties, suburbs, DEMO_USER, aiReply } from "./mock-data"
+import { properties as allProperties, suburbs, aiReply } from "./mock-data"
 import type {
   ChatMessage,
   ContractRequest,
@@ -19,6 +19,13 @@ import type {
 } from "./types"
 import { defaultFilters, filterProperties, type Filters } from "./search"
 import { loadJSON, saveJSON } from "./persist"
+import {
+  completeNewPassword as cognitoNewPassword,
+  currentUser,
+  signInWithPassword,
+  signOutCognito,
+  type SignInResult,
+} from "./auth"
 
 export interface FlyTarget {
   center: [number, number]
@@ -53,14 +60,14 @@ interface N3X7State {
   requestContract: (id: string, message: string) => Promise<void>
   user: DemoUser | null
   hydrated: boolean
-  signIn: (email: string) => void
+  signIn: (email: string, password: string) => Promise<SignInResult>
+  completeNewPassword: (newPassword: string) => Promise<SignInResult>
   signOut: () => void
 }
 
 const N3X7Context = createContext<N3X7State | null>(null)
 
 const KEYS = {
-  user: "n3x7.user",
   saved: "n3x7.saved",
   contracts: "n3x7.contracts",
 }
@@ -96,17 +103,21 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     },
   ])
 
-  // Restore demo session after mount (localStorage is browser-only).
+  // Restore the Cognito session and the browser-only demo state after mount.
   useEffect(() => {
-    setUser(loadJSON<DemoUser | null>(KEYS.user, null))
-    setSavedIds(loadJSON<string[]>(KEYS.saved, []))
-    setContractRequests(loadJSON<Record<string, ContractRequest>>(KEYS.contracts, {}))
-    setHydrated(true)
+    let alive = true
+    currentUser().then((u) => {
+      if (!alive) return
+      setUser(u)
+      setSavedIds(loadJSON<string[]>(KEYS.saved, []))
+      setContractRequests(loadJSON<Record<string, ContractRequest>>(KEYS.contracts, {}))
+      setHydrated(true)
+    })
+    return () => {
+      alive = false
+    }
   }, [])
 
-  useEffect(() => {
-    if (hydrated) saveJSON(KEYS.user, user)
-  }, [hydrated, user])
   useEffect(() => {
     if (hydrated) saveJSON(KEYS.saved, savedIds)
   }, [hydrated, savedIds])
@@ -148,16 +159,21 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     setSavedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
   }, [])
 
-  const signIn = useCallback((email: string) => {
-    setUser({
-      email,
-      name: email === DEMO_USER.email ? DEMO_USER.name : email.split("@")[0],
-      role: DEMO_USER.role,
-    })
+  const signIn = useCallback(async (email: string, password: string) => {
+    const r = await signInWithPassword(email, password)
+    if (r.status === "ok") setUser(r.user)
+    return r
+  }, [])
+
+  const completeNewPassword = useCallback(async (newPassword: string) => {
+    const r = await cognitoNewPassword(newPassword)
+    if (r.status === "ok") setUser(r.user)
+    return r
   }, [])
 
   // Signing out resets the demo session so each walkthrough starts clean.
   const signOut = useCallback(() => {
+    signOutCognito()
     setDrawerOpen(false)
     setUser(null)
     setSavedIds([])
@@ -221,6 +237,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       user,
       hydrated,
       signIn,
+      completeNewPassword,
       signOut,
     }),
     [
@@ -246,6 +263,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       user,
       hydrated,
       signIn,
+      completeNewPassword,
       signOut,
     ],
   )

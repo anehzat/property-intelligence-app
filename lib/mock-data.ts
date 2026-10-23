@@ -12,7 +12,6 @@ export const MAP_CENTER: [number, number] = [-33.8795, 151.185]
 
 export const DEMO_USER = {
   email: "demo@n3x7.bot",
-  password: "n3x7-demo",
   name: "Sam Taylor",
   role: "Acquisitions Analyst",
 }
