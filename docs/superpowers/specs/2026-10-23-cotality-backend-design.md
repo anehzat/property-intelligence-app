@@ -142,7 +142,7 @@ The Lambda logs the request ID, route, Cotality status and duration. It **never*
 
 - Cognito: admin-created users only (self sign-up disabled). Password policy: 12+ characters with mixed case, numbers and symbols. MFA optional (TOTP), can be enforced later. ID tokens last 1 hour, refresh tokens 30 days.
 - API Gateway: the JWT authorizer checks issuer and audience. CORS allows only `https://next.eronka.com`, `https://main.d2tgqj6ewcyky0.amplifyapp.com` and `http://localhost:3000`. Throttling is 10 rps with a burst of 20.
-- Lambda: least-privilege role with `secretsmanager:GetSecretValue` on `n3x7/cotality` only. Timeout 10 s, memory 256 MB, and reserved concurrency of 5 to cap the blast radius on Cotality's quota.
+- Lambda: least-privilege role with `secretsmanager:GetSecretValue` on `n3x7/cotality` only. Timeout 10 s, memory 256 MB. No reserved concurrency: this account's Lambda limit is 10, and AWS requires 10 unreserved, so API Gateway throttling is the cap on Cotality's quota.
 - Secrets: only in Secrets Manager. Never in the repo, the front end or logs.
 - Only the routes above exist. The Lambda builds Cotality URLs itself, so there's no pass-through of arbitrary paths or params.
 
