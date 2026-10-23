@@ -38,10 +38,7 @@ export function Sidebar() {
         </div>
         <div className="leading-none">
           <span className="text-[15px] font-semibold tracking-tight text-sidebar-foreground">
-            N3X7
-          </span>
-          <span className="text-[15px] font-semibold tracking-tight text-primary">
-            .bot
+            NEXT
           </span>
           <p className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
             Property Intelligence

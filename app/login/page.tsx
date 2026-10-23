@@ -45,7 +45,7 @@ export default function LoginPage() {
         <div className="flex items-center gap-2">
           <Hexagon className="size-7 text-primary" fill="currentColor" />
           <span className="text-lg font-semibold">
-            N3X7<span className="text-primary">.bot</span>
+            NEXT
           </span>
         </div>
         <div>
