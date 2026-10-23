@@ -8,6 +8,17 @@ export const LIVE_TYPES = [
 ] as const
 export const landAreaOptions = [0, 300, 500, 800, 1000]
 
+/** The live suburb named in free text, e.g. "Quakers Hills" → "Quakers Hill". Null if none. */
+export function matchLiveSuburb(text: string): (typeof LIVE_SUBURBS)[number] | null {
+  for (const name of LIVE_SUBURBS) {
+    const words = name.toLowerCase().split(" ")
+    // Words may be separated by any whitespace, and a trailing "s" on the last word is tolerated.
+    const pattern = words.map((w, i) => (i === words.length - 1 ? `${w}s?` : w)).join("\\s+")
+    if (new RegExp(`\\b${pattern}\\b`, "i").test(text)) return name
+  }
+  return null
+}
+
 export interface LiveQuery {
   suburb: string
   types: string[]

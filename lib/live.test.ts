@@ -1,7 +1,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
-  LiveError, campaignUrl, centerOf, fetchLive, isListingsResponse, listingsUrl,
+  LiveError, campaignUrl, centerOf, fetchLive, isListingsResponse, listingsUrl, matchLiveSuburb,
 } from "./live.ts"
 
 test("listingsUrl encodes the query", () => {
@@ -64,4 +64,17 @@ test("fetchLive rejects unexpected shapes and network failures", async () => {
   } finally {
     globalThis.fetch = realFetch
   }
+})
+
+test("matchLiveSuburb finds live suburbs in free text, tolerating a trailing s", () => {
+  assert.equal(matchLiveSuburb("Quakers Hills"), "Quakers Hill")
+  assert.equal(matchLiveSuburb("houses in seven hills nsw"), "Seven Hills")
+  assert.equal(matchLiveSuburb("BLACKTOWN"), "Blacktown")
+  assert.equal(matchLiveSuburb("quakers  hill"), "Quakers Hill")
+})
+
+test("matchLiveSuburb ignores other places", () => {
+  assert.equal(matchLiveSuburb("Glebe"), null)
+  assert.equal(matchLiveSuburb("Blacktowner"), null)
+  assert.equal(matchLiveSuburb(""), null)
 })

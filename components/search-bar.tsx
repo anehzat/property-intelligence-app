@@ -6,10 +6,11 @@ import { ArrowUpRight, Search, Sparkles } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
 import { exampleSearches, suburbs } from "@/lib/mock-data"
 import { parseSearch } from "@/lib/search"
+import { matchLiveSuburb } from "@/lib/live"
 import { cn } from "@/lib/utils"
 
 export function SearchBar() {
-  const { query, setQuery, askAi, setFilters } = useN3X7()
+  const { query, setQuery, askAi, setFilters, setDataSource, setLiveQuery } = useN3X7()
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -20,7 +21,15 @@ export function SearchBar() {
     if (!q) return
     setQuery(q)
     setOpen(false)
-    // Searches naming a known suburb drive the Discover filters
+    // A Cotality sandbox suburb switches Discover to live listings
+    const liveSuburb = matchLiveSuburb(q)
+    if (liveSuburb) {
+      setDataSource("live")
+      setLiveQuery({ suburb: liveSuburb })
+      if (pathname !== "/") router.push("/")
+      return
+    }
+    // Searches naming a known demo suburb drive the Discover filters
     const patch = parseSearch(q, suburbs)
     if (patch) {
       setFilters(patch)
