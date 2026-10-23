@@ -77,4 +77,16 @@ test("matchLiveSuburb ignores other places", () => {
   assert.equal(matchLiveSuburb("Glebe"), null)
   assert.equal(matchLiveSuburb("Blacktowner"), null)
   assert.equal(matchLiveSuburb(""), null)
+  assert.equal(matchLiveSuburb("Find properties with LMR upside"), null)
+  assert.equal(matchLiveSuburb("black"), null)
+})
+
+test("matchLiveSuburb tolerates a missing s, odd spacing and small typos", () => {
+  assert.equal(matchLiveSuburb("seven hill"), "Seven Hills")
+  assert.equal(matchLiveSuburb("seven halls"), "Seven Hills")
+  assert.equal(matchLiveSuburb("sevenhills"), "Seven Hills")
+  assert.equal(matchLiveSuburb("Black town"), "Blacktown")
+  assert.equal(matchLiveSuburb("blaktown"), "Blacktown")
+  assert.equal(matchLiveSuburb("quaker hill"), "Quakers Hill")
+  assert.equal(matchLiveSuburb("houses in qakers hils"), "Quakers Hill")
 })

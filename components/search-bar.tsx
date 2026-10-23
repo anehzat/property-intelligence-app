@@ -5,13 +5,15 @@ import { usePathname, useRouter } from "next/navigation"
 import { ArrowUpRight, Search, Sparkles } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
 import { exampleSearches, suburbs } from "@/lib/mock-data"
-import { parseSearch } from "@/lib/search"
-import { matchLiveSuburb } from "@/lib/live"
+import { noMatchMessage, routeSearch } from "@/lib/search-route"
 import { cn } from "@/lib/utils"
 
 export function SearchBar() {
   const { query, setQuery, askAi, setFilters, setDataSource, setLiveQuery } = useN3X7()
   const [open, setOpen] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  // Enter pressed while an IME (e.g. Vietnamese Telex) is still composing a word
+  const enterWhileComposing = useRef(false)
   const router = useRouter()
   const pathname = usePathname()
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -21,25 +23,23 @@ export function SearchBar() {
     if (!q) return
     setQuery(q)
     setOpen(false)
-    // A Cotality sandbox suburb switches Discover to live listings
-    const liveSuburb = matchLiveSuburb(q)
-    if (liveSuburb) {
+    setNotice(null)
+    const route = routeSearch(q, suburbs)
+    if (route.kind === "live") {
+      // A Cotality sandbox suburb switches Discover to live listings
       setDataSource("live")
-      setLiveQuery({ suburb: liveSuburb })
+      setLiveQuery({ suburb: route.suburb })
       if (pathname !== "/") router.push("/")
-      return
-    }
-    // Searches naming a known demo suburb drive the Discover filters
-    const patch = parseSearch(q, suburbs)
-    if (patch) {
-      setFilters(patch)
+    } else if (route.kind === "demo") {
+      // Searches naming a known demo suburb drive the Discover filters
+      setDataSource("demo")
+      setFilters(route.patch)
       if (pathname !== "/") router.push("/")
-      return
-    }
-    // Natural-language questions route to the AI analyst
-    if (/\b(find|show|ask|why|compare|explain|under|potential|growth)\b/i.test(q)) {
+    } else if (route.kind === "ai") {
       askAi(q)
       router.push("/analyst")
+    } else {
+      setNotice(noMatchMessage(q))
     }
   }
 
@@ -54,11 +54,21 @@ export function SearchBar() {
         <Search className="size-4 shrink-0 text-muted-foreground" />
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setNotice(null)
+          }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.nativeEvent.isComposing) submit(query)
+            if (e.key !== "Enter") return
+            if (e.nativeEvent.isComposing) enterWhileComposing.current = true
+            else submit(e.currentTarget.value)
+          }}
+          onCompositionEnd={(e) => {
+            if (!enterWhileComposing.current) return
+            enterWhileComposing.current = false
+            submit(e.currentTarget.value)
           }}
           placeholder="Search address, suburb or ask N3X7 anything..."
           className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
@@ -68,6 +78,12 @@ export function SearchBar() {
           Enter
         </kbd>
       </div>
+
+      {notice && !open && (
+        <p role="status" className="absolute top-13 left-0 z-50 w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground shadow-lg">
+          {notice}
+        </p>
+      )}
 
       {open && (
         <div className="glass absolute top-13 left-0 z-50 w-full overflow-hidden rounded-xl p-1.5 shadow-2xl">

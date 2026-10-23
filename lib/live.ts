@@ -8,15 +8,43 @@ export const LIVE_TYPES = [
 ] as const
 export const landAreaOptions = [0, 300, 500, 800, 1000]
 
-/** The live suburb named in free text, e.g. "Quakers Hills" → "Quakers Hill". Null if none. */
-export function matchLiveSuburb(text: string): (typeof LIVE_SUBURBS)[number] | null {
-  for (const name of LIVE_SUBURBS) {
-    const words = name.toLowerCase().split(" ")
-    // Words may be separated by any whitespace, and a trailing "s" on the last word is tolerated.
-    const pattern = words.map((w, i) => (i === words.length - 1 ? `${w}s?` : w)).join("\\s+")
-    if (new RegExp(`\\b${pattern}\\b`, "i").test(text)) return name
+// Lowercase letters only, without a trailing "s", so "Seven Hills", "sevenhill" and "seven hill" compare equal.
+function squash(text: string): string {
+  return text.toLowerCase().replace(/[^a-z]/g, "").replace(/s$/, "")
+}
+
+function editDistance(a: string, b: string): number {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i]
+    for (let j = 1; j <= b.length; j++) {
+      row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+    }
+    prev = row
   }
-  return null
+  return prev[b.length]
+}
+
+/**
+ * The live suburb named in free text, forgiving case, spacing, a trailing "s" and small typos,
+ * e.g. "Quakers Hills" → "Quakers Hill", "seven halls" → "Seven Hills". Null if none.
+ */
+export function matchLiveSuburb(text: string): (typeof LIVE_SUBURBS)[number] | null {
+  const words = text.split(/\s+/).filter(Boolean)
+  let best: { name: (typeof LIVE_SUBURBS)[number]; distance: number } | null = null
+  for (const name of LIVE_SUBURBS) {
+    const target = squash(name)
+    // One wrong letter for short names, two for longer ones; "Blacktowner" is still not Blacktown.
+    const tolerance = target.length < 10 ? 1 : 2
+    // Try every run of up to three consecutive words, so "Black town" and "sevenhills" both line up.
+    for (let start = 0; start < words.length; start++) {
+      for (let len = 1; len <= 3 && start + len <= words.length; len++) {
+        const distance = editDistance(squash(words.slice(start, start + len).join("")), target)
+        if (distance <= tolerance && (!best || distance < best.distance)) best = { name, distance }
+      }
+    }
+  }
+  return best?.name ?? null
 }
 
 export interface LiveQuery {
