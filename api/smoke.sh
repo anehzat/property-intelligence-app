@@ -48,10 +48,17 @@ for s in Blacktown "Quakers%20Hill" "Seven%20Hills"; do
   [ "$count" -gt 0 ] || { echo "❌ listings $s returned no listings"; fail=1; }
 done
 
-ID=$(curl -s -H "Authorization: Bearer $TOKEN" "$API/listings?suburb=Blacktown" \
-  | python3 -c 'import sys,json; l=json.load(sys.stdin)["listings"]; print(next((x["cotalityId"] for x in l if x.get("agentName")), l[0]["cotalityId"]))')
-code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/listings/$ID/campaign")
-check "campaign for a listed property" 200 "$code"
+# Cotality's campaign data lags search: some for-sale listings have no active campaign (404).
+# Require at least one 200 among the first page and no server errors.
+IDS=$(curl -s -H "Authorization: Bearer $TOKEN" "$API/listings?suburb=Blacktown" \
+  | python3 -c 'import sys,json; print(" ".join(str(x["cotalityId"]) for x in json.load(sys.stdin)["listings"][:10]))')
+ok=0; bad=0
+for ID in $IDS; do
+  code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/listings/$ID/campaign")
+  case "$code" in 200) ok=$((ok+1)) ;; 404) ;; *) bad=$((bad+1)) ;; esac
+done
+[ "$ok" -gt 0 ] && [ "$bad" -eq 0 ] && r=pass || r=fail
+check "campaigns ($ok with active campaign, $bad errors)" pass "$r"
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS -H "Origin: https://next.eronka.com" \
   -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: authorization" "$API/listings")
