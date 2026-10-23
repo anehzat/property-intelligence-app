@@ -15,3 +15,7 @@ node_modules
 .DS_Store
 # Static export output
 /out/
+
+# Cotality API build output
+/api/dist/
+/api/packaged.yaml
