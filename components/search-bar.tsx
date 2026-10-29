@@ -5,8 +5,13 @@ import { usePathname, useRouter } from "next/navigation"
 import { ArrowUpRight, Search, Sparkles } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
 import { exampleSearches, suburbs } from "@/lib/mock-data"
+import { features } from "@/lib/config"
+import { LIVE_SUBURBS } from "@/lib/live"
 import { noMatchMessage, routeSearch } from "@/lib/search-route"
 import { cn } from "@/lib/utils"
+
+// With the demo and the analyst hidden, only the Cotality suburbs are worth suggesting
+const suggestions: readonly string[] = features.ai || features.demo ? exampleSearches : LIVE_SUBURBS
 
 export function SearchBar() {
   const { query, setQuery, askAi, setFilters, setDataSource, setLiveQuery } = useN3X7()
@@ -30,12 +35,12 @@ export function SearchBar() {
       setDataSource("live")
       setLiveQuery({ suburb: route.suburb })
       if (pathname !== "/") router.push("/")
-    } else if (route.kind === "demo") {
+    } else if (route.kind === "demo" && features.demo) {
       // Searches naming a known demo suburb drive the Discover filters
       setDataSource("demo")
       setFilters(route.patch)
       if (pathname !== "/") router.push("/")
-    } else if (route.kind === "ai") {
+    } else if (route.kind === "ai" && features.ai) {
       askAi(q)
       router.push("/analyst")
     } else {
@@ -70,9 +75,9 @@ export function SearchBar() {
             enterWhileComposing.current = false
             submit(e.currentTarget.value)
           }}
-          placeholder="Search address, suburb or ask N3X7 anything..."
+          placeholder={features.ai ? "Search address, suburb or ask N3X7 anything..." : "Search address or suburb..."}
           className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          aria-label="Search properties or ask N3X7"
+          aria-label={features.ai ? "Search properties or ask N3X7" : "Search properties"}
         />
         <kbd className="hidden shrink-0 items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:flex">
           Enter
@@ -88,10 +93,16 @@ export function SearchBar() {
       {open && (
         <div className="glass absolute top-13 left-0 z-50 w-full overflow-hidden rounded-xl p-1.5 shadow-2xl">
           <p className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-            <Sparkles className="size-3 text-ai" />
-            Try asking
+            {features.ai ? (
+              <>
+                <Sparkles className="size-3 text-ai" />
+                Try asking
+              </>
+            ) : (
+              "Live suburbs"
+            )}
           </p>
-          {exampleSearches.map((s) => (
+          {suggestions.map((s) => (
             <button
               key={s}
               onMouseDown={(e) => e.preventDefault()}

@@ -13,6 +13,7 @@ import {
   TrendingUp,
 } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
+import { features } from "@/lib/config"
 import {
   formatDistance,
   formatPrice,
@@ -267,16 +268,18 @@ export function PropertyDrawer() {
                 />
                 {isSaved(p.id) ? "Saved" : "Save"}
               </Button>
-              <Button
-                className="flex-[1.5] bg-ai text-ai-foreground [a]:hover:bg-ai/80 hover:bg-ai/85"
-                onClick={() => {
-                  setAiContextId(p.id)
-                  askAi(`Why is ${p.address} interesting?`)
-                }}
-              >
-                <Sparkles className="size-4" />
-                Ask N3X7 about this
-              </Button>
+              {features.ai && (
+                <Button
+                  className="flex-[1.5] bg-ai text-ai-foreground [a]:hover:bg-ai/80 hover:bg-ai/85"
+                  onClick={() => {
+                    setAiContextId(p.id)
+                    askAi(`Why is ${p.address} interesting?`)
+                  }}
+                >
+                  <Sparkles className="size-4" />
+                  Ask N3X7 about this
+                </Button>
+              )}
             </div>
           </>
         )}

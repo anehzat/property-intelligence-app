@@ -2,6 +2,7 @@
 
 import { useN3X7 } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import { features } from "@/lib/config"
 
 export function SourceSwitch() {
   const { dataSource, setDataSource } = useN3X7()
@@ -9,6 +10,7 @@ export function SourceSwitch() {
     { id: "demo", label: "Demo listings" },
     { id: "live", label: "Live · Cotality" },
   ] as const
+  if (!features.demo) return null
   return (
     <div className="flex rounded-lg border border-border p-0.5" role="group" aria-label="Data source">
       {options.map((o) => (

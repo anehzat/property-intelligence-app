@@ -128,7 +128,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     development: false,
     constraints: false,
   })
-  const [dataSource, setDataSource] = useState<DataSource>("demo")
+  const [dataSource, setDataSource] = useState<DataSource>("live")
   const [liveQuery, setLiveQueryState] = useState<LiveQuery>(defaultLiveQuery)
   const [live, setLive] = useState<LiveState>(idleLive)
   const [selectedLive, setSelectedLive] = useState<LiveListing | null>(null)
@@ -266,7 +266,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     setSavedIds([])
     setContractRequests({})
     setSavedLive({})
-    setDataSource("demo")
+    setDataSource("live")
     setLiveQueryState(defaultLiveQuery)
     setLive(idleLive)
     setSelectedLive(null)

@@ -2,6 +2,7 @@
 
 import { Bookmark, Calendar, FileCheck, MapPin, Sparkles, Trash2 } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
+import { features } from "@/lib/config"
 import { formatPrice, formatRelative, opportunityStyle, typeLabel } from "@/lib/format"
 import { ScoreRing } from "@/components/score-card"
 import { LiveListingCard } from "@/components/live-listing-card"
@@ -116,17 +117,19 @@ export default function SavedPage() {
                         </span>
                       )}
                       <div className="ml-auto flex gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setAiContextId(p.id)
-                            askAi(`Why is ${p.address} interesting?`)
-                          }}
-                        >
-                          <Sparkles className="size-3.5 text-ai" />
-                          Ask AI
-                        </Button>
+                        {features.ai && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setAiContextId(p.id)
+                              askAi(`Why is ${p.address} interesting?`)
+                            }}
+                          >
+                            <Sparkles className="size-3.5 text-ai" />
+                            Ask AI
+                          </Button>
+                        )}
                         <Button size="sm" onClick={() => openProperty(p.id)}>
                           View
                         </Button>

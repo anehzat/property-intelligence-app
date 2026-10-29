@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import type { Property } from "@/lib/types"
 import { useN3X7 } from "@/lib/store"
+import { features } from "@/lib/config"
 import { formatPrice, opportunityStyle, statusLabel, typeLabel } from "@/lib/format"
 import { ScoreRing } from "./score-card"
 import { Button } from "@/components/ui/button"
@@ -127,17 +128,19 @@ export function PropertyCard({ property }: { property: Property }) {
           >
             View Details
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setAiContextId(property.id)
-              askAi(`Why is ${property.address} interesting?`)
-            }}
-          >
-            <Sparkles className="size-3.5 text-ai" />
-            Ask AI
-          </Button>
+          {features.ai && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setAiContextId(property.id)
+                askAi(`Why is ${property.address} interesting?`)
+              }}
+            >
+              <Sparkles className="size-3.5 text-ai" />
+              Ask AI
+            </Button>
+          )}
         </div>
       </div>
     </div>
