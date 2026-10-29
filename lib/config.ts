@@ -5,8 +5,9 @@ export const config = {
   userPoolClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID ?? "",
 }
 
-// Hidden for now: the mocked AI analyst and the demo listings. Flip to bring them back.
+// Hidden for now: the mocked AI analyst, the demo listings and the N3X7 property score. Flip to bring them back.
 export const features = {
   ai: false,
   demo: false,
+  score: false,
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Bath, BedDouble, Bookmark, Car, Info, LandPlot, Loader2, MapPin, Phone } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
 import { getIdToken } from "@/lib/auth"
-import { config } from "@/lib/config"
+import { config, features } from "@/lib/config"
 import { campaignUrl, fetchLive, isLiveCampaign, LiveError } from "@/lib/live"
 import type { LiveCampaign } from "@/lib/types"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
@@ -106,7 +106,9 @@ export function LiveDrawer() {
 
               <div className="flex items-start gap-2 rounded-xl border border-border p-3 text-xs text-muted-foreground">
                 <Info className="mt-px size-3.5 shrink-0" />
-                Not scored yet. N3X7 score, frontage and LMR/TOD flags aren&apos;t available for live listings.
+                {features.score
+                  ? "Not scored yet. N3X7 score, frontage and LMR/TOD flags aren't available for live listings."
+                  : "Frontage and LMR/TOD flags aren't available for live listings yet."}
               </div>
 
               <div className="space-y-2">

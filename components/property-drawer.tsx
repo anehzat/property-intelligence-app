@@ -118,12 +118,14 @@ export function PropertyDrawer() {
                     {statusLabel[p.status]}
                   </span>
                 </div>
-                <div className="flex flex-col items-center">
-                  <ScoreRing score={p.score} size={68} stroke={6} />
-                  <span className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-                    N3X7 Score
-                  </span>
-                </div>
+                {features.score && (
+                  <div className="flex flex-col items-center">
+                    <ScoreRing score={p.score} size={68} stroke={6} />
+                    <span className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                      N3X7 Score
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Attributes */}
@@ -211,30 +213,32 @@ export function PropertyDrawer() {
               </div>
 
               {/* Score breakdown */}
-              <div>
-                <h3 className="mb-3 text-sm font-semibold text-foreground">
-                  N3X7 Score Breakdown
-                </h3>
-                <div className="space-y-3">
-                  <ScoreBar
-                    label="Planning Opportunity"
-                    value={p.breakdown.planningOpportunity}
-                  />
-                  <ScoreBar
-                    label="Market Demand"
-                    value={p.breakdown.marketDemand}
-                  />
-                  <ScoreBar
-                    label="Transport Access"
-                    value={p.breakdown.transportAccess}
-                  />
-                  <ScoreBar
-                    label="Risk Score"
-                    value={p.breakdown.riskScore}
-                    inverse
-                  />
+              {features.score && (
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">
+                    N3X7 Score Breakdown
+                  </h3>
+                  <div className="space-y-3">
+                    <ScoreBar
+                      label="Planning Opportunity"
+                      value={p.breakdown.planningOpportunity}
+                    />
+                    <ScoreBar
+                      label="Market Demand"
+                      value={p.breakdown.marketDemand}
+                    />
+                    <ScoreBar
+                      label="Transport Access"
+                      value={p.breakdown.transportAccess}
+                    />
+                    <ScoreBar
+                      label="Risk Score"
+                      value={p.breakdown.riskScore}
+                      inverse
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Insights */}
               <div>

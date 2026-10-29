@@ -15,6 +15,7 @@ import { Crosshair, Layers, Locate, Plus, Minus } from "lucide-react"
 import { MAP_CENTER, planningZones, layerMeta, properties } from "@/lib/mock-data"
 import type { LiveListing, Property } from "@/lib/types"
 import { useN3X7 } from "@/lib/store"
+import { features } from "@/lib/config"
 import { formatPriceShort } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { PlanningOverlay } from "./planning-overlay"
@@ -35,6 +36,7 @@ const typeSvg: Record<Property["type"], string> = {
 }
 
 function scoreHex(score: number) {
+  if (!features.score) return "#4aa8ff"
   if (score >= 85) return "#4ade80"
   if (score >= 75) return "#4aa8ff"
   if (score >= 60) return "#f5c451"
@@ -56,9 +58,9 @@ function markerIcon(p: Property, active: boolean) {
         <span style="font-family:var(--font-mono, monospace); font-size:11px; font-weight:700; color:${active ? "#0f1319" : "#fff"};">
           ${formatPriceShort(p.price)}
         </span>
-        <span style="font-family:var(--font-mono, monospace); font-size:10px; font-weight:700; color:${active ? "#0f1319" : color};">
+        ${features.score ? `<span style="font-family:var(--font-mono, monospace); font-size:10px; font-weight:700; color:${active ? "#0f1319" : color};">
           ${p.score}
-        </span>
+        </span>` : ""}
       </div>
       <div style="width:2px; height:9px; background:${color};"></div>
     </div>`
@@ -327,12 +329,14 @@ export default function PropertyMap() {
                     <span className="text-xs text-muted-foreground">
                       {p.beds} bed
                     </span>
-                    <span
-                      className="font-mono text-xs font-bold"
-                      style={{ color: scoreHex(p.score) }}
-                    >
-                      {p.score}/100
-                    </span>
+                    {features.score && (
+                      <span
+                        className="font-mono text-xs font-bold"
+                        style={{ color: scoreHex(p.score) }}
+                      >
+                        {p.score}/100
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => openProperty(p.id)}
