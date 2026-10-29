@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { useN3X7 } from "@/lib/store"
 
 function Row({
   title,
@@ -29,6 +30,8 @@ function Row({
 }
 
 export default function SettingsPage() {
+  const { user } = useN3X7()
+
   return (
     <ScrollArea className="h-full">
       <div className="mx-auto max-w-3xl px-6 py-8">
@@ -48,13 +51,13 @@ export default function SettingsPage() {
               <label className="text-sm font-medium" htmlFor="name">
                 Full name
               </label>
-              <Input id="name" defaultValue="Alex Morgan" />
+              <Input id="name" defaultValue={user?.name} />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium" htmlFor="email">
                 Email
               </label>
-              <Input id="email" type="email" defaultValue="alex@n3x7.bot" />
+              <Input id="email" type="email" defaultValue={user?.email} />
             </div>
           </div>
         </Card>
@@ -107,7 +110,7 @@ export default function SettingsPage() {
             </Row>
             <Row
               title="Valuation model"
-              description="Automated valuation and comparable sales."
+              description="Cotality automated valuation and comparable sales."
             >
               <Badge variant="outline">Beta</Badge>
             </Row>
