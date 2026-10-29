@@ -7,6 +7,7 @@ import { isLoginPath } from "@/lib/paths"
 import { Sidebar } from "./sidebar"
 import { TopHeader } from "./top-header"
 import { PropertyDrawer } from "./property-drawer"
+import { LiveDrawer } from "./live-drawer"
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, hydrated } = useN3X7()
@@ -29,9 +30,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopHeader />
-        <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+        <main className="isolate min-h-0 flex-1 overflow-hidden">{children}</main>
       </div>
       <PropertyDrawer />
+      <LiveDrawer />
     </div>
   )
 }

@@ -13,12 +13,13 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useN3X7 } from "@/lib/store"
+import { features } from "@/lib/config"
 
 const nav = [
   { label: "Discover", href: "/", icon: Compass },
   { label: "Map", href: "/map", icon: MapIcon },
   { label: "Saved Properties", href: "/saved", icon: Bookmark },
-  { label: "AI Analyst", href: "/analyst", icon: Sparkles },
+  ...(features.ai ? [{ label: "AI Analyst", href: "/analyst", icon: Sparkles }] : []),
   { label: "Alerts", href: "/alerts", icon: Bell },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
@@ -38,10 +39,7 @@ export function Sidebar() {
         </div>
         <div className="leading-none">
           <span className="text-[15px] font-semibold tracking-tight text-sidebar-foreground">
-            N3X7
-          </span>
-          <span className="text-[15px] font-semibold tracking-tight text-primary">
-            .bot
+            NEXT
           </span>
           <p className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
             Property Intelligence

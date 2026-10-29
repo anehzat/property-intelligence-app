@@ -2,8 +2,10 @@
 
 import { Bookmark, Calendar, FileCheck, MapPin, Sparkles, Trash2 } from "lucide-react"
 import { useN3X7 } from "@/lib/store"
+import { features } from "@/lib/config"
 import { formatPrice, formatRelative, opportunityStyle, typeLabel } from "@/lib/format"
 import { ScoreRing } from "@/components/score-card"
+import { LiveListingCard } from "@/components/live-listing-card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -17,8 +19,10 @@ export default function SavedPage() {
     setAiContextId,
     askAi,
     contractRequests,
+    savedLive,
   } = useN3X7()
   const saved = properties.filter((p) => savedIds.includes(p.id))
+  const savedLiveList = Object.values(savedLive)
 
   return (
     <ScrollArea className="h-full">
@@ -28,11 +32,11 @@ export default function SavedPage() {
             Saved Properties
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {saved.length} opportunities tracked in your intelligence watchlist.
+            {saved.length + savedLiveList.length} opportunities tracked in your intelligence watchlist.
           </p>
         </header>
 
-        {saved.length === 0 ? (
+        {saved.length === 0 && savedLiveList.length === 0 ? (
           <div className="glass flex flex-col items-center justify-center gap-3 rounded-2xl py-20 text-center">
             <div className="flex size-12 items-center justify-center rounded-xl bg-primary/12">
               <Bookmark className="size-5 text-primary" />
@@ -47,6 +51,7 @@ export default function SavedPage() {
             </div>
           </div>
         ) : (
+          <>
           <div className="grid gap-4">
             {saved.map((p) => {
               const opp = opportunityStyle[p.opportunity]
@@ -112,17 +117,19 @@ export default function SavedPage() {
                         </span>
                       )}
                       <div className="ml-auto flex gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setAiContextId(p.id)
-                            askAi(`Why is ${p.address} interesting?`)
-                          }}
-                        >
-                          <Sparkles className="size-3.5 text-ai" />
-                          Ask AI
-                        </Button>
+                        {features.ai && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setAiContextId(p.id)
+                              askAi(`Why is ${p.address} interesting?`)
+                            }}
+                          >
+                            <Sparkles className="size-3.5 text-ai" />
+                            Ask AI
+                          </Button>
+                        )}
                         <Button size="sm" onClick={() => openProperty(p.id)}>
                           View
                         </Button>
@@ -141,6 +148,17 @@ export default function SavedPage() {
               )
             })}
           </div>
+          {savedLiveList.length > 0 && (
+            <section className="mt-8 space-y-3">
+              <h2 className="text-sm font-semibold text-foreground">Live listings (Cotality)</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                {savedLiveList.map((l) => (
+                  <LiveListingCard key={l.id} listing={l} />
+                ))}
+              </div>
+            </section>
+          )}
+          </>
         )}
       </div>
     </ScrollArea>
