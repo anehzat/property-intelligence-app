@@ -24,7 +24,7 @@ export function TopHeader() {
     .slice(0, 2)
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
+    <header className="relative z-10 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
       <div className="flex items-center gap-2 md:hidden">
         <Hexagon className="size-6 text-primary" fill="currentColor" />
         <span className="text-sm font-semibold">
