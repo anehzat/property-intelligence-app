@@ -92,7 +92,7 @@ export default function SavedPage() {
                           {p.suburb} {p.state}
                         </p>
                       </div>
-                      <ScoreRing score={p.score} size={48} />
+                      {features.score && <ScoreRing score={p.score} size={48} />}
                     </div>
 
                     <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-foreground/80">

@@ -84,12 +84,14 @@ export function PropertyCard({ property }: { property: Property }) {
               {formatPrice(property.price)}
             </p>
           </div>
-          <div className="flex flex-col items-center">
-            <ScoreRing score={property.score} size={52} />
-            <span className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-              N3X7
-            </span>
-          </div>
+          {features.score && (
+            <div className="flex flex-col items-center">
+              <ScoreRing score={property.score} size={52} />
+              <span className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                N3X7
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 border-y border-border py-2 text-xs text-muted-foreground">
