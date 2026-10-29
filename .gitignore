@@ -19,3 +19,6 @@ node_modules
 # Cotality API build output
 /api/dist/
 /api/packaged.yaml
+
+# Brainstorming mockups
+.superpowers/
