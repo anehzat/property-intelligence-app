@@ -41,8 +41,8 @@ export interface LinkStore {
 }
 
 export interface Cipher {
-  encrypt(plain: string): Promise<string>
-  decrypt(cipher: string): Promise<string>
+  encrypt(plain: string, userId: string): Promise<string>
+  decrypt(cipher: string, userId: string): Promise<string>
 }
 
 const CLAIM_CONFLICT = "RP Data account claim conflict"
@@ -113,15 +113,15 @@ export function createDynamoStore(opts: {
       const item = out.Item as LinkRecord
       return {
         ...item,
-        accessToken: await cipher.decrypt(item.accessToken),
-        refreshToken: await cipher.decrypt(item.refreshToken),
+        accessToken: await cipher.decrypt(item.accessToken, userId),
+        refreshToken: await cipher.decrypt(item.refreshToken, userId),
       }
     },
     async link(rec, previousRpSub) {
       const item = {
         ...rec,
-        accessToken: await cipher.encrypt(rec.accessToken),
-        refreshToken: await cipher.encrypt(rec.refreshToken),
+        accessToken: await cipher.encrypt(rec.accessToken, rec.userId),
+        refreshToken: await cipher.encrypt(rec.refreshToken, rec.userId),
       }
       const items: NonNullable<TransactWriteCommand["input"]["TransactItems"]> = [
         { Put: { TableName: linksTable, Item: item } },
@@ -186,9 +186,9 @@ export function createDynamoStore(opts: {
               "SET accessToken = :at, accessExpiresAt = :ae, refreshToken = :rt, refreshedAt = :ra, version = :next REMOVE refreshingUntil",
             ConditionExpression: "attribute_exists(userId) AND version = :v",
             ExpressionAttributeValues: {
-              ":at": await cipher.encrypt(t.accessToken),
+              ":at": await cipher.encrypt(t.accessToken, userId),
               ":ae": t.accessExpiresAt,
-              ":rt": await cipher.encrypt(t.refreshToken),
+              ":rt": await cipher.encrypt(t.refreshToken, userId),
               ":ra": t.refreshedAt,
               ":next": version + 1,
               ":v": version,
@@ -238,13 +238,13 @@ export function createDynamoStore(opts: {
 
 export function createKmsCipher(keyId: string, kms: KMSClient = new KMSClient({})): Cipher {
   return {
-    async encrypt(plain) {
-      const out = await kms.send(new EncryptCommand({ KeyId: keyId, Plaintext: new TextEncoder().encode(plain) }))
+    async encrypt(plain, userId) {
+      const out = await kms.send(new EncryptCommand({ KeyId: keyId, Plaintext: new TextEncoder().encode(plain), EncryptionContext: { userId } }))
       if (!out.CiphertextBlob) throw new Error("KMS encrypt returned no ciphertext")
       return Buffer.from(out.CiphertextBlob).toString("base64")
     },
-    async decrypt(cipher) {
-      const out = await kms.send(new DecryptCommand({ KeyId: keyId, CiphertextBlob: Buffer.from(cipher, "base64") }))
+    async decrypt(cipher, userId) {
+      const out = await kms.send(new DecryptCommand({ KeyId: keyId, CiphertextBlob: Buffer.from(cipher, "base64"), EncryptionContext: { userId } }))
       if (!out.Plaintext) throw new Error("KMS decrypt returned no plaintext")
       return new TextDecoder().decode(out.Plaintext)
     },

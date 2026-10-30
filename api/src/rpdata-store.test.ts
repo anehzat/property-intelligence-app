@@ -2,7 +2,9 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { TransactWriteCommand } from "@aws-sdk/lib-dynamodb"
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb"
-import { createDynamoStore, createMemoryStore } from "./rpdata-store.ts"
+import { DecryptCommand, EncryptCommand } from "@aws-sdk/client-kms"
+import type { KMSClient } from "@aws-sdk/client-kms"
+import { createDynamoStore, createKmsCipher, createMemoryStore } from "./rpdata-store.ts"
 import type { LinkRecord } from "./rpdata-store.ts"
 
 const rec = (userId: string, rpSub: string, extra: Partial<LinkRecord> = {}): LinkRecord => ({
@@ -122,9 +124,16 @@ test("unlink removes both the link and the claim", async () => {
   assert.equal(await s.link(rec("u2", "sub1"), null), "ok")
 })
 
+const cipherCalls: string[] = []
 const cipher = {
-  encrypt: async (p: string) => `enc(${p})`,
-  decrypt: async (c: string) => c.slice(4, -1),
+  encrypt: async (p: string, userId: string) => {
+    cipherCalls.push(`encrypt:${userId}`)
+    return `enc(${p})`
+  },
+  decrypt: async (c: string, userId: string) => {
+    cipherCalls.push(`decrypt:${userId}`)
+    return c.slice(4, -1)
+  },
 }
 
 function fakeDoc(handler: (cmd: unknown) => unknown) {
@@ -191,4 +200,40 @@ test("createDynamoStore get decrypts tokens and tryLease maps a failed condition
   assert.equal(got?.accessToken, "a1")
   assert.equal(got?.refreshToken, "r1")
   assert.equal(await s.tryLease("u1", 0, 1, 2), false)
+})
+
+test("the store passes the record's userId to the cipher on get, link and saveRefreshed", async () => {
+  const f = fakeDoc((cmd) => {
+    if ((cmd as { constructor: { name: string } }).constructor.name === "GetCommand")
+      return { Item: { ...rec("u7", "sub1"), accessToken: "enc(a1)", refreshToken: "enc(r1)" } }
+    return {}
+  })
+  const s = createDynamoStore({ linksTable: "L", accountsTable: "A", cipher, doc: f.doc })
+  cipherCalls.length = 0
+  await s.get("u7")
+  await s.link(rec("u7", "sub1"), null)
+  await s.saveRefreshed("u7", 1, { accessToken: "a", accessExpiresAt: 1, refreshToken: "r", refreshedAt: 1 })
+  assert.deepEqual(cipherCalls, [
+    "decrypt:u7", "decrypt:u7",
+    "encrypt:u7", "encrypt:u7",
+    "encrypt:u7", "encrypt:u7",
+  ])
+})
+
+test("createKmsCipher binds ciphertext to the user with an EncryptionContext", async () => {
+  const sent: unknown[] = []
+  const kms = {
+    send: async (cmd: unknown) => {
+      sent.push(cmd)
+      if (cmd instanceof EncryptCommand) return { CiphertextBlob: new TextEncoder().encode("blob") }
+      return { Plaintext: new TextEncoder().encode("plain") }
+    },
+  } as unknown as KMSClient
+  const c = createKmsCipher("key", kms)
+  await c.encrypt("x", "u1")
+  await c.decrypt("YmxvYg==", "u1")
+  assert.ok(sent[0] instanceof EncryptCommand)
+  assert.ok(sent[1] instanceof DecryptCommand)
+  assert.deepEqual((sent[0] as EncryptCommand).input.EncryptionContext, { userId: "u1" })
+  assert.deepEqual((sent[1] as DecryptCommand).input.EncryptionContext, { userId: "u1" })
 })
