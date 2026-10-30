@@ -80,7 +80,7 @@ test("connect stores tokens and returns the username", async () => {
   assert.equal(r?.accessToken, "a1")
   assert.equal(r?.refreshToken, "r1")
   assert.equal(r?.rpSub, "sub1")
-  assert.equal(r?.version, 0)
+  assert.equal(r?.version, T0)
   assert.equal(r?.linkedAt, T0)
   assert.equal(r?.refreshedAt, T0)
   assert.deepEqual(await mgr.status("u1"), { connected: true, username: "rp-user" })
@@ -142,6 +142,50 @@ test("disconnect unlinks, and with no link is a no-op", async () => {
   await mgr.disconnect("u1")
   assert.equal(await store.get("u1"), null)
   await rejectsWith(mgr.accessToken("u1"), 409, "RPDATA_NOT_LINKED")
+})
+
+test("relink after disconnect gets a new version, so a stale saveRefreshed at the old version returns false", async () => {
+  const { mgr, store, clock } = setup()
+  await mgr.connect("u1", "code", "cb")
+  const oldVersion = (await store.get("u1"))!.version
+  await mgr.disconnect("u1")
+  clock.t += 1_000
+  await mgr.connect("u1", "code2", "cb")
+  const stale = { accessToken: "aOld", accessExpiresAt: clock.t + 60 * MIN, refreshToken: "rOld", refreshedAt: clock.t }
+  assert.equal(await store.saveRefreshed("u1", oldVersion, stale), false)
+  const r = await store.get("u1")
+  assert.equal(r?.version, T0 + 1_000)
+  assert.equal(r?.accessToken, "a1")
+  assert.equal(r?.refreshToken, "r1")
+})
+
+test("a cached token is re-read from the store after 60 s, so a disconnect elsewhere takes effect", async () => {
+  const shared = createMemoryStore()
+  const a = setup({ store: shared })
+  const b = setup({ store: shared })
+  await shared.link(rec(), null)
+  assert.equal(await b.mgr.accessToken("u1"), "a1")
+  await a.mgr.disconnect("u1")
+  b.clock.t += 59_000
+  assert.equal(await b.mgr.accessToken("u1"), "a1")
+  b.clock.t += 2_000
+  await rejectsWith(b.mgr.accessToken("u1"), 409, "RPDATA_NOT_LINKED")
+})
+
+test("a refresh takes a 20 s lease", async () => {
+  const mem = createMemoryStore()
+  const leases: [number, number][] = []
+  const store: LinkStore = {
+    ...mem,
+    tryLease(userId, version, now, until) {
+      leases.push([now, until])
+      return mem.tryLease(userId, version, now, until)
+    },
+  }
+  const { mgr } = setup({ store })
+  await mem.link(rec({ accessExpiresAt: T0 }), null)
+  await mgr.accessToken("u1")
+  assert.deepEqual(leases, [[T0, T0 + 20_000]])
 })
 
 test("accessToken returns the stored token when more than 5 minutes remain", async () => {

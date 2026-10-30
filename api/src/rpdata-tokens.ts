@@ -31,7 +31,10 @@ export interface TokenManager {
 
 /** Refresh when this little or less remains on the access token. */
 const REFRESH_WINDOW_MS = 5 * 60_000
-const LEASE_MS = 15_000
+/** Outlasts the 15 s Lambda timeout, so a lease never expires under a live refresh. */
+const LEASE_MS = 20_000
+/** How long a per-container copy is trusted before re-reading (disconnects elsewhere). */
+const CACHE_TTL_MS = 60_000
 const WAIT_POLL_MS = 500
 const WAIT_MAX_MS = 5_000
 /** Retries of the post-refresh write, after the first attempt. */
@@ -51,8 +54,9 @@ export function createTokenManager(deps: {
   const now = deps.now ?? Date.now
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const log = deps.log ?? console.log
-  /** Per-container copy. Only ever trusted while outside the refresh window. */
-  const cache = new Map<string, LinkRecord>()
+  /** Per-container copy. Trusted only for 60 s and only while outside the refresh window. */
+  const cache = new Map<string, { rec: LinkRecord; cachedAt: number }>()
+  const remember = (rec: LinkRecord) => cache.set(rec.userId, { rec, cachedAt: now() })
 
   // Never log tokens, codes, secrets or the RP Data username: event name and Cotality error code only.
   const logEvent = (event: string, code?: string) => log(JSON.stringify(code ? { event, code } : { event }))
@@ -85,7 +89,7 @@ export function createTokenManager(deps: {
       throw notLinked()
     }
     if (r.version === version) return null
-    cache.set(userId, r)
+    remember(r)
     return r.accessToken
   }
 
@@ -137,7 +141,7 @@ export function createTokenManager(deps: {
         continue
       }
       if (ok) {
-        cache.set(userId, { ...rec, ...saved, version: version + 1, refreshingUntil: undefined })
+        remember({ ...rec, ...saved, version: version + 1, refreshingUntil: undefined })
         return saved.accessToken
       }
       // Version conflict: someone else saved a pair. Use theirs.
@@ -151,14 +155,14 @@ export function createTokenManager(deps: {
 
   async function accessToken(userId: string): Promise<string> {
     const cached = cache.get(userId)
-    if (cached && fresh(cached)) return cached.accessToken
+    if (cached && now() - cached.cachedAt < CACHE_TTL_MS && fresh(cached.rec)) return cached.rec.accessToken
 
     const rec = await store.get(userId)
     if (!rec) {
       cache.delete(userId)
       throw notLinked()
     }
-    cache.set(userId, rec)
+    remember(rec)
     if (fresh(rec)) return rec.accessToken
 
     const t = now()
@@ -198,14 +202,15 @@ export function createTokenManager(deps: {
           accessToken: set.accessToken,
           accessExpiresAt: set.expiresAt,
           refreshToken: set.refreshToken,
-          version: 0,
+          // Epoch ms, not 0: a relink never reuses a version a stale container may hold.
+          version: t,
           linkedAt: t,
           refreshedAt: t,
         }
         if ((await store.link(rec, existing?.rpSub ?? null)) === "in-use") {
           throw new RpDataError(409, "RPDATA_IN_USE", "This RP Data account is already linked to another N3X7 user")
         }
-        cache.set(userId, rec)
+        remember(rec)
         return { connected: true as const, username: set.rpUsername }
       }),
 
