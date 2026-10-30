@@ -45,6 +45,8 @@ export interface Cipher {
   decrypt(cipher: string): Promise<string>
 }
 
+const CLAIM_CONFLICT = "RP Data account claim conflict"
+
 export function createMemoryStore(): LinkStore {
   const links = new Map<string, LinkRecord>()
   const accounts = new Map<string, string>() // rpSub -> userId
@@ -56,8 +58,11 @@ export function createMemoryStore(): LinkStore {
     async link(rec, previousRpSub) {
       const holder = accounts.get(rec.rpSub)
       if (holder !== undefined && holder !== rec.userId) return "in-use"
-      if (previousRpSub && previousRpSub !== rec.rpSub && accounts.get(previousRpSub) === rec.userId) {
-        accounts.delete(previousRpSub)
+      const release = previousRpSub && previousRpSub !== rec.rpSub ? previousRpSub : null
+      if (release) {
+        const old = accounts.get(release)
+        if (old !== undefined && old !== rec.userId) throw new Error(CLAIM_CONFLICT)
+        accounts.delete(release)
       }
       accounts.set(rec.rpSub, rec.userId)
       links.set(rec.userId, { ...rec })
@@ -82,8 +87,10 @@ export function createMemoryStore(): LinkStore {
       if (r && r.version === version) delete r.refreshingUntil
     },
     async unlink(userId, rpSub) {
+      const holder = accounts.get(rpSub)
+      if (holder !== undefined && holder !== userId) throw new Error(CLAIM_CONFLICT)
       links.delete(userId)
-      if (accounts.get(rpSub) === userId) accounts.delete(rpSub)
+      accounts.delete(rpSub)
     },
   }
 }
@@ -132,7 +139,7 @@ export function createDynamoStore(opts: {
           Delete: {
             TableName: accountsTable,
             Key: { rpSub: previousRpSub },
-            ConditionExpression: "userId = :me",
+            ConditionExpression: "attribute_not_exists(rpSub) OR userId = :me",
             ExpressionAttributeValues: { ":me": rec.userId },
           },
         })
@@ -144,6 +151,9 @@ export function createDynamoStore(opts: {
         const reasons = (e as { CancellationReasons?: { Code?: string }[] }).CancellationReasons
         if (errName(e) === "TransactionCanceledException" && reasons?.[1]?.Code === "ConditionalCheckFailed") {
           return "in-use"
+        }
+        if (errName(e) === "TransactionCanceledException" && reasons?.[2]?.Code === "ConditionalCheckFailed") {
+          throw new Error(CLAIM_CONFLICT)
         }
         throw e
       }

@@ -70,6 +70,40 @@ test("saveRefreshed increments version and clears the lease; a stale version ret
   assert.equal(await s.saveRefreshed("u1", 0, t), false)
 })
 
+test("link with a previousRpSub that no longer exists succeeds", async () => {
+  const s = createMemoryStore()
+  assert.equal(await s.link(rec("u1", "sub2"), "gone"), "ok")
+})
+
+test("link with a previousRpSub held by another user throws and stores nothing", async () => {
+  const s = createMemoryStore()
+  await s.link(rec("u2", "sub1"), null)
+  await assert.rejects(s.link(rec("u1", "sub2"), "sub1"), /RP Data account claim conflict/)
+  assert.equal(await s.get("u1"), null)
+  assert.equal(await s.link(rec("u3", "sub2"), null), "ok")
+})
+
+test("unlink when the claim is held by another user throws and keeps the link", async () => {
+  const s = createMemoryStore()
+  await s.link(rec("u2", "sub1"), null)
+  await s.link(rec("u1", "sub9"), null)
+  await assert.rejects(s.unlink("u1", "sub1"), /RP Data account claim conflict/)
+  assert.ok(await s.get("u1"))
+})
+
+test("link sends the old-claim delete with attribute_not_exists(rpSub) OR userId = :me", async () => {
+  const f = fakeDoc(() => {
+    throw Object.assign(new Error("x"), {
+      name: "TransactionCanceledException",
+      CancellationReasons: [{ Code: "None" }, { Code: "None" }, { Code: "ConditionalCheckFailed" }],
+    })
+  })
+  const s = createDynamoStore({ linksTable: "L", accountsTable: "A", cipher, doc: f.doc })
+  await assert.rejects(s.link(rec("u1", "sub2"), "sub1"), /RP Data account claim conflict/)
+  const items = (f.sent[0] as TransactWriteCommand).input.TransactItems!
+  assert.equal(items[2].Delete?.ConditionExpression, "attribute_not_exists(rpSub) OR userId = :me")
+})
+
 test("clearLease removes the lease only for the matching version", async () => {
   const s = createMemoryStore()
   await s.link(rec("u1", "sub1"), null)
@@ -118,7 +152,7 @@ test("createDynamoStore link sends a TransactWriteCommand with the accounts cond
   assert.equal(items[1].Put?.TableName, "A")
   assert.equal(items[1].Put?.ConditionExpression, "attribute_not_exists(rpSub) OR userId = :me")
   assert.equal(items[2].Delete?.Key?.rpSub, "sub1")
-  assert.equal(items[2].Delete?.ConditionExpression, "userId = :me")
+  assert.equal(items[2].Delete?.ConditionExpression, "attribute_not_exists(rpSub) OR userId = :me")
 })
 
 test("createDynamoStore maps a cancelled accounts claim to in-use and rethrows other errors", async () => {
