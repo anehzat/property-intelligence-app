@@ -106,3 +106,25 @@ test("suggestLocality throws when no locality is found", async () => {
   const f = fakeFetch((url) => tokenOk(url) ?? json({ suggestions: [] }))
   await assert.rejects(createCotality(creds, f.fn).suggestLocality("Nowhere"), CotalityError)
 })
+
+test("with a user token, get uses it and does not call the token endpoint", async () => {
+  let auth = ""
+  const f = fakeFetch((url, init) => {
+    auth = String((init?.headers as Record<string, string>).Authorization)
+    return json({ ok: true })
+  })
+  const c = createCotality(creds, f.fn, () => 0)
+  await c.saleCampaign(1, "user-tok")
+  assert.equal(auth, "Bearer user-tok")
+  assert.equal(f.calls.filter((u) => u.includes("token.oauth2")).length, 0)
+})
+
+test("a 401 with a user token throws without retrying", async () => {
+  const f = fakeFetch(() => json({}, 401))
+  const c = createCotality(creds, f.fn, () => 0)
+  await assert.rejects(
+    () => c.saleCampaign(1, "user-tok"),
+    (e: unknown) => e instanceof CotalityError && e.status === 401 && e.userToken === true,
+  )
+  assert.equal(f.calls.length, 1)
+})
