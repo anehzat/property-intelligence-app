@@ -8,9 +8,18 @@ importers:
 
   .:
     devDependencies:
+      '@aws-sdk/client-dynamodb':
+        specifier: 3.1156.0
+        version: 3.1156.0
+      '@aws-sdk/client-kms':
+        specifier: 3.1156.0
+        version: 3.1156.0
       '@aws-sdk/client-secrets-manager':
         specifier: 3.1156.0
         version: 3.1156.0
+      '@aws-sdk/lib-dynamodb':
+        specifier: 3.1156.0
+        version: 3.1156.0(@aws-sdk/client-dynamodb@3.1156.0)
       '@types/aws-lambda':
         specifier: 8.10.164
         version: 8.10.164
@@ -26,12 +35,24 @@ importers:
 
 packages:
 
+  '@aws-sdk/client-dynamodb@3.1156.0':
+    resolution: {integrity: sha512-K7wOerEfbVIMHxssmqXPKw/TtrKl9D7jDv1f8AtCr0S1jh040HChaV1vgDtzU2tmbCFlVvLQrG6vvZbHrTwacw==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-kms@3.1156.0':
+    resolution: {integrity: sha512-dXzmgG3FIZsLD5L+IVntcZW0BBuNBBqq9kImu2kjr4EX/x3yNT4JzNIFb3vUYq2i/URQKbP1vHnN2dksw3TqMw==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/client-secrets-manager@3.1156.0':
     resolution: {integrity: sha512-poP++IuNmZZ6e79fesFn9qTy/IScNiH9I9bCWyevlOFQMI+ZfZQ0Sfz3dsc+c0uMtYVpofRIAd1WO7lCAKhxxg==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.978.5':
     resolution: {integrity: sha512-ruI0AWqcrfL20XDS6SwZIJFPOBZ6N0ADa9nLzWlBhxk1aoUjbUX3JkTR9vEmk7o35XpAHi68ahZ4T6RE2U9XyA==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/core@3.979.0':
+    resolution: {integrity: sha512-E3eeLhIOxlIc9NPsZbtpHuk8W/gEZ3YvFauNPrrrtNtF7Pq1cwSrFwA51Z1EIoUY6VFvTyltyLRNUhaa0aSKSA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/credential-provider-env@3.972.76':
@@ -66,6 +87,24 @@ packages:
     resolution: {integrity: sha512-LUo46IqPTJ4xKBsrLuoaxiv/D2GTBCcFDMD1y3jKIqPR/p7Rw14RJFZ0iRWftqZtyLPQX9JMGnSi3mBu4y/pNA==}
     engines: {node: '>=20.0.0'}
 
+  '@aws-sdk/dynamodb-codec@3.973.53':
+    resolution: {integrity: sha512-hmq4qVpo3Q1Iw2D4/IfhkSpB5tYItXjugKTcYhg6nq5wqmEezefTIBZC8Kblx6Evf+ZwVA95RPue5Hyil+Hylg==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/endpoint-cache@3.972.11':
+    resolution: {integrity: sha512-8q1ICxcDjHId3bBryuu/j+1L9y5/3uQnwzLDt5j2ElcjZSoWmFtymdJy7OjLrluSMe0Z4mq5bcH4fxBXvlEHfw==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/lib-dynamodb@3.1156.0':
+    resolution: {integrity: sha512-9uJS1rF3ROTMrUfsJD5B5zki7tT5W654/vEBe+kuMw7Nn9CwQpi7d0Sif6fukPmapiujLnbonj3yR353wVRgdg==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@aws-sdk/client-dynamodb': ^3.1156.0
+
+  '@aws-sdk/middleware-endpoint-discovery@3.972.36':
+    resolution: {integrity: sha512-kEQHZJh2WZWsIkhYLwJr0OZXSD8aLaamOJSVRR05SwCkgalrVbgqFAeXa/NzOWz+8dyURloFz4qj76d5mbx+fg==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/nested-clients@3.997.50':
     resolution: {integrity: sha512-nKb8qu4QsnpZTq/6JIXc72mzuzfh7BK4sUQkpQznPec2z4W7Ob2xYkcM4i5e1yGTBnbJVeFv/0sf3jcz85hclA==}
     engines: {node: '>=20.0.0'}
@@ -82,8 +121,18 @@ packages:
     resolution: {integrity: sha512-WQlhs6juByzWOzj5fwxOx0mPJaEqMcG/sDpl3Id61B3XhKE63xY+0QWcnG+sWR/sCfprmreyUo1lM7IKZmHMzw==}
     engines: {node: '>=20.0.0'}
 
+  '@aws-sdk/util-dynamodb@3.996.9':
+    resolution: {integrity: sha512-16x2tRvl7OYpZ0W/DdFJieFriD13+RvuRBDbe5sj/tCEfK86HSGd7I2s5j0ivz8p6KWGkS+5wKRO9OliJkjUOQ==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@aws-sdk/client-dynamodb': ^3.1111.0
+
   '@aws-sdk/xml-builder@3.972.41':
     resolution: {integrity: sha512-ctjVSyCMegrWfXlx6VqzSBFI6UqmQ5ZlnfMhdLIiWmhoH8UAQxSCP5N3OpG7X3k4LnS7ou74C4mt20+bfTW2aQ==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/xml-builder@3.972.42':
+    resolution: {integrity: sha512-smX8/gNP8Kjq+CWTBMZQLQ912vOQjiWExzwzvMO+eujPB5RY8IbtF0AGdUUXHKN7KoDWK9dIcuW0WG269kiP6w==}
     engines: {node: '>=20.0.0'}
 
   '@aws/lambda-invoke-store@0.3.0':
@@ -250,6 +299,10 @@ packages:
     resolution: {integrity: sha512-oRw0rB9QSUiCZfEs23G5F4Af+b2rQt1lItIICWu5IejFNd+uPM8SWqiKLMpQ6bX1Q7slsLbjuoE2niErFtkVPQ==}
     engines: {node: '>=18.0.0'}
 
+  '@smithy/core@3.38.0':
+    resolution: {integrity: sha512-aLyyCnK2p4yvNA2TaM+5owXqb+rZGSiUKEsNP329AzeYnERtAz7NrlTbRsaxqmZ0ooxwoID8LMm959UGQQDIsg==}
+    engines: {node: '>=18.0.0'}
+
   '@smithy/credential-provider-imds@4.5.2':
     resolution: {integrity: sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==}
     engines: {node: '>=18.0.0'}
@@ -284,6 +337,12 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  mnemonist@0.38.3:
+    resolution: {integrity: sha512-2K9QYubXx/NAjv4VLq1d1Ly8pWNC5L3BrixtdkyTegXWJIqY+zLNDhhX/A+ZwWt70tB1S8H4BE8FLYEFyNoOBw==}
+
+  obliterator@1.6.1:
+    resolution: {integrity: sha512-9WXswnqINnnhOG/5SLimUlzuU1hFJUc8zkwyD59Sd+dPOMf05PmnYG/d6Q7HZ+KmgkZJa1PxRso6QdM3sTNHig==}
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -296,6 +355,30 @@ packages:
     resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
 
 snapshots:
+
+  '@aws-sdk/client-dynamodb@3.1156.0':
+    dependencies:
+      '@aws-sdk/core': 3.978.5
+      '@aws-sdk/credential-provider-node': 3.972.88
+      '@aws-sdk/dynamodb-codec': 3.973.53
+      '@aws-sdk/middleware-endpoint-discovery': 3.972.36
+      '@aws-sdk/types': 3.975.0
+      '@smithy/core': 3.36.2
+      '@smithy/fetch-http-handler': 5.8.0
+      '@smithy/node-http-handler': 4.12.1
+      '@smithy/types': 4.19.0
+      tslib: 2.8.1
+
+  '@aws-sdk/client-kms@3.1156.0':
+    dependencies:
+      '@aws-sdk/core': 3.978.5
+      '@aws-sdk/credential-provider-node': 3.972.88
+      '@aws-sdk/types': 3.975.0
+      '@smithy/core': 3.36.2
+      '@smithy/fetch-http-handler': 5.8.0
+      '@smithy/node-http-handler': 4.12.1
+      '@smithy/types': 4.19.0
+      tslib: 2.8.1
 
   '@aws-sdk/client-secrets-manager@3.1156.0':
     dependencies:
@@ -314,6 +397,17 @@ snapshots:
       '@aws-sdk/xml-builder': 3.972.41
       '@aws/lambda-invoke-store': 0.3.0
       '@smithy/core': 3.36.2
+      '@smithy/signature-v4': 5.7.4
+      '@smithy/types': 4.19.0
+      bowser: 2.14.1
+      tslib: 2.8.1
+
+  '@aws-sdk/core@3.979.0':
+    dependencies:
+      '@aws-sdk/types': 3.975.0
+      '@aws-sdk/xml-builder': 3.972.42
+      '@aws/lambda-invoke-store': 0.3.0
+      '@smithy/core': 3.38.0
       '@smithy/signature-v4': 5.7.4
       '@smithy/types': 4.19.0
       bowser: 2.14.1
@@ -403,6 +497,35 @@ snapshots:
       '@smithy/types': 4.19.0
       tslib: 2.8.1
 
+  '@aws-sdk/dynamodb-codec@3.973.53':
+    dependencies:
+      '@aws-sdk/core': 3.979.0
+      '@smithy/core': 3.38.0
+      '@smithy/types': 4.19.0
+      tslib: 2.8.1
+
+  '@aws-sdk/endpoint-cache@3.972.11':
+    dependencies:
+      mnemonist: 0.38.3
+      tslib: 2.8.1
+
+  '@aws-sdk/lib-dynamodb@3.1156.0(@aws-sdk/client-dynamodb@3.1156.0)':
+    dependencies:
+      '@aws-sdk/client-dynamodb': 3.1156.0
+      '@aws-sdk/core': 3.978.5
+      '@aws-sdk/util-dynamodb': 3.996.9(@aws-sdk/client-dynamodb@3.1156.0)
+      '@smithy/core': 3.36.2
+      '@smithy/types': 4.19.0
+      tslib: 2.8.1
+
+  '@aws-sdk/middleware-endpoint-discovery@3.972.36':
+    dependencies:
+      '@aws-sdk/endpoint-cache': 3.972.11
+      '@aws-sdk/types': 3.975.0
+      '@smithy/core': 3.38.0
+      '@smithy/types': 4.19.0
+      tslib: 2.8.1
+
   '@aws-sdk/nested-clients@3.997.50':
     dependencies:
       '@aws-sdk/core': 3.978.5
@@ -435,7 +558,17 @@ snapshots:
       '@smithy/types': 4.19.0
       tslib: 2.8.1
 
+  '@aws-sdk/util-dynamodb@3.996.9(@aws-sdk/client-dynamodb@3.1156.0)':
+    dependencies:
+      '@aws-sdk/client-dynamodb': 3.1156.0
+      tslib: 2.8.1
+
   '@aws-sdk/xml-builder@3.972.41':
+    dependencies:
+      '@smithy/types': 4.19.0
+      tslib: 2.8.1
+
+  '@aws-sdk/xml-builder@3.972.42':
     dependencies:
       '@smithy/types': 4.19.0
       tslib: 2.8.1
@@ -525,6 +658,11 @@ snapshots:
       '@smithy/types': 4.19.0
       tslib: 2.8.1
 
+  '@smithy/core@3.38.0':
+    dependencies:
+      '@smithy/types': 4.19.0
+      tslib: 2.8.1
+
   '@smithy/credential-provider-imds@4.5.2':
     dependencies:
       '@smithy/core': 3.36.2
@@ -589,6 +727,12 @@ snapshots:
       '@esbuild/win32-arm64': 0.28.2
       '@esbuild/win32-ia32': 0.28.2
       '@esbuild/win32-x64': 0.28.2
+
+  mnemonist@0.38.3:
+    dependencies:
+      obliterator: 1.6.1
+
+  obliterator@1.6.1: {}
 
   tslib@2.8.1: {}
 
