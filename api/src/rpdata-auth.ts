@@ -49,7 +49,19 @@ export function createRpAuth(
   let creds: AuthCreds | null = null
 
   async function tokenRequest(grant: Record<string, string>): Promise<TokenSet> {
-    creds ??= await loadCreds()
+    if (!creds) {
+      let loaded: AuthCreds
+      try {
+        loaded = await loadCreds()
+      } catch {
+        throw new RpAuthError("unavailable", "RP Data credentials unavailable")
+      }
+      const ok = [loaded?.authBaseUrl, loaded?.userClientId, loaded?.userClientSecret].every(
+        (v) => typeof v === "string" && v.length > 0,
+      )
+      if (!ok) throw new RpAuthError("unavailable", "RP Data credentials incomplete")
+      creds = loaded
+    }
     const body = new URLSearchParams({
       ...grant,
       client_id: creds.userClientId,

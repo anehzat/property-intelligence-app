@@ -101,3 +101,18 @@ test("decodeClaims returns {} for a malformed token", () => {
   assert.deepEqual(decodeClaims("a.%%%.c"), {})
   assert.deepEqual(decodeClaims(jwt({ sub: "s", username: "u" })), { sub: "s", username: "u" })
 })
+
+test("loadCreds failure becomes unavailable without leaking the original error", async () => {
+  const f = fakeFetch(() => json(okBody))
+  const auth = createRpAuth(async () => { throw new Error("AccessDenied arn:aws:secret") }, f.fn, () => 1)
+  await assert.rejects(auth.refresh("r1"), (e: unknown) =>
+    e instanceof RpAuthError && e.code === "unavailable" && !e.message.includes("AccessDenied"))
+  assert.equal(f.calls.length, 0)
+})
+
+test("incomplete creds are unavailable and never reach fetch", async () => {
+  const f = fakeFetch(() => json(okBody))
+  const auth = createRpAuth(async () => ({ authBaseUrl: "https://auth.test", userClientId: "cid", userClientSecret: "" }), f.fn, () => 1)
+  await assert.rejects(auth.exchangeCode("c", "u"), (e: unknown) => e instanceof RpAuthError && e.code === "unavailable")
+  assert.equal(f.calls.length, 0)
+})
