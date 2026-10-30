@@ -7,7 +7,7 @@ import { useN3X7 } from "@/lib/store"
 import { callbackOutcome, RPDATA_CALLBACK_PATH, RPDATA_STATE_KEY } from "@/lib/rpdata"
 import { AuthCard } from "@/components/auth-card"
 
-const failPath = (message: string) => `/connect-rpdata/?error=${encodeURIComponent(message)}`
+const failPath = (error: string) => `/connect-rpdata/?error=${error}`
 
 export default function RpDataCallbackPage() {
   const { connectRpData } = useN3X7()
@@ -23,11 +23,11 @@ export default function RpDataCallbackPage() {
     // Take the code out of the URL before it is sent anywhere.
     window.history.replaceState(null, "", RPDATA_CALLBACK_PATH)
     if (!outcome.ok) {
-      router.replace(failPath(outcome.message))
+      router.replace(failPath(outcome.error))
       return
     }
     void connectRpData(outcome.code).then((r) => {
-      router.replace(r.ok ? "/" : failPath(r.message))
+      router.replace(r.ok ? "/" : failPath(r.error))
     })
   }, [connectRpData, router])
 

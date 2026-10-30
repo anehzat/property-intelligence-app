@@ -21,7 +21,8 @@ import type {
 import { defaultFilters, filterProperties, type Filters } from "./search"
 import { loadJSON, saveJSON } from "./persist"
 import { config } from "./config"
-import { isRpStatus, redirectUriFor, rpdataEnabled, rpdataUrl, shouldLoadLive } from "./rpdata"
+import { connectErrorKey, isRpStatus, redirectUriFor, rpdataEnabled, rpdataUrl, shouldLoadLive } from "./rpdata"
+import type { RpErrorKey } from "./rpdata"
 import {
   centerOf,
   defaultLiveQuery,
@@ -50,9 +51,6 @@ export type DataSource = "demo" | "live"
 
 export type RpDataState = "unknown" | "linked" | "unlinked" | "disabled"
 
-const RPDATA_CONNECT_FAILED = "Couldn't connect your RP Data account. Please try again."
-const RPDATA_IN_USE_MESSAGE =
-  "This RP Data account is already linked to another N3X7 user. Contact your N3X7 admin."
 
 export interface LiveState {
   status: "idle" | "loading" | "ok" | "error"
@@ -108,7 +106,7 @@ interface N3X7State {
   rpUsername: string | null
   rpdataError: string | null
   refreshRpData: () => Promise<void>
-  connectRpData: (code: string) => Promise<{ ok: true } | { ok: false; message: string }>
+  connectRpData: (code: string) => Promise<{ ok: true } | { ok: false; error: RpErrorKey }>
   disconnectRpData: () => Promise<void>
   markRpDataUnlinked: () => void
 }
@@ -277,7 +275,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
   const connectRpData = useCallback(async (code: string) => {
     try {
       const token = await getIdToken()
-      if (!token) return { ok: false as const, message: "Your session has expired. Sign in again." }
+      if (!token) return { ok: false as const, error: "connect_failed" as const }
       const r = await fetch(rpdataUrl(config.apiUrl, "connect"), {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
@@ -286,19 +284,13 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       const body: unknown = await r.json().catch(() => null)
       const b = (body ?? {}) as { error?: unknown; code?: unknown; connected?: unknown; username?: unknown }
       if (!r.ok) {
-        const message =
-          b.code === "RPDATA_IN_USE"
-            ? RPDATA_IN_USE_MESSAGE
-            : typeof b.error === "string" && b.error
-              ? b.error
-              : RPDATA_CONNECT_FAILED
-        return { ok: false as const, message }
+        return { ok: false as const, error: connectErrorKey(b.code) }
       }
       setRpdata("linked")
       setRpUsername(typeof b.username === "string" ? b.username : null)
       return { ok: true as const }
     } catch {
-      return { ok: false as const, message: RPDATA_CONNECT_FAILED }
+      return { ok: false as const, error: "connect_failed" as const }
     }
   }, [])
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useN3X7 } from "@/lib/store"
 import { config } from "@/lib/config"
-import { authorizeUrl, newState, redirectUriFor, RPDATA_STATE_KEY } from "@/lib/rpdata"
+import { authorizeUrl, newState, redirectUriFor, rpdataErrorMessage, RPDATA_STATE_KEY } from "@/lib/rpdata"
 import { Button } from "@/components/ui/button"
 import { AuthCard } from "@/components/auth-card"
 
@@ -11,9 +11,9 @@ export default function ConnectRpDataPage() {
   const { signOut } = useN3X7()
   const [error, setError] = useState<string | null>(null)
 
-  // The callback page passes its failure message in the query string.
+  // The callback page passes a failure key; only known keys map to a fixed message.
   useEffect(() => {
-    setError(new URLSearchParams(window.location.search).get("error"))
+    setError(rpdataErrorMessage(new URLSearchParams(window.location.search).get("error")))
   }, [])
 
   function connect() {

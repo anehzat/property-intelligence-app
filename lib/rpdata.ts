@@ -33,26 +33,39 @@ export function newState(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")
 }
 
-export type CallbackOutcome = { ok: true; code: string } | { ok: false; message: string }
+/** Fixed failure keys. The connect page shows only these messages, never text taken from the URL. */
+export type RpErrorKey = "cancelled" | "expired" | "failed" | "in_use" | "connect_failed"
 
-const FAILED = "RP Data sign-in failed. Please try again."
+export const RPDATA_ERROR_MESSAGES: Record<RpErrorKey, string> = {
+  cancelled: "RP Data sign-in was cancelled.",
+  expired: "The RP Data sign-in link expired. Please try again.",
+  failed: "RP Data sign-in failed. Please try again.",
+  in_use: "This RP Data account is already linked to another N3X7 user. Contact your N3X7 admin.",
+  connect_failed: "Couldn't connect your RP Data account. Please try again.",
+}
+
+/** The message for a key from the query string, or null for anything unknown. */
+export function rpdataErrorMessage(key: string | null): string | null {
+  if (key === null || !Object.prototype.hasOwnProperty.call(RPDATA_ERROR_MESSAGES, key)) return null
+  return RPDATA_ERROR_MESSAGES[key as RpErrorKey]
+}
+
+/** Maps a failed /rpdata/connect response (its `code` field) to a key. */
+export function connectErrorKey(apiCode: unknown): RpErrorKey {
+  return apiCode === "RPDATA_IN_USE" ? "in_use" : "connect_failed"
+}
+
+export type CallbackOutcome = { ok: true; code: string } | { ok: false; error: RpErrorKey }
 
 /** Reads the callback query string. An error param wins, then the state check, then a missing code. */
 export function callbackOutcome(search: string, savedState: string | null): CallbackOutcome {
   const p = new URLSearchParams(search)
   const error = p.get("error")
-  if (error) {
-    return {
-      ok: false,
-      message: error === "access_denied" ? "RP Data sign-in was cancelled." : FAILED,
-    }
-  }
+  if (error) return { ok: false, error: error === "access_denied" ? "cancelled" : "failed" }
   const state = p.get("state")
-  if (!savedState || state !== savedState) {
-    return { ok: false, message: "The RP Data sign-in link expired. Please try again." }
-  }
+  if (!savedState || state !== savedState) return { ok: false, error: "expired" }
   const code = p.get("code")
-  if (!code) return { ok: false, message: FAILED }
+  if (!code) return { ok: false, error: "failed" }
   return { ok: true, code }
 }
 

@@ -3,15 +3,15 @@ import assert from "node:assert/strict"
 import {
   authorizeUrl,
   callbackOutcome,
+  connectErrorKey,
   isRpStatus,
   newState,
   redirectUriFor,
   rpdataEnabled,
+  rpdataErrorMessage,
   rpdataUrl,
 } from "./rpdata.ts"
 
-const EXPIRED = "The RP Data sign-in link expired. Please try again."
-const FAILED = "RP Data sign-in failed. Please try again."
 
 test("rpdataEnabled is false when either value is empty", () => {
   assert.equal(rpdataEnabled("", "abc"), false)
@@ -47,23 +47,23 @@ test("callbackOutcome returns the code when state matches", () => {
 })
 
 test("callbackOutcome rejects missing or mismatched state", () => {
-  assert.deepEqual(callbackOutcome("?code=abc&state=s1", "s2"), { ok: false, message: EXPIRED })
-  assert.deepEqual(callbackOutcome("?code=abc", "s1"), { ok: false, message: EXPIRED })
-  assert.deepEqual(callbackOutcome("?code=abc&state=s1", null), { ok: false, message: EXPIRED })
-  assert.deepEqual(callbackOutcome("?code=abc&state=", ""), { ok: false, message: EXPIRED })
+  assert.deepEqual(callbackOutcome("?code=abc&state=s1", "s2"), { ok: false, error: "expired" })
+  assert.deepEqual(callbackOutcome("?code=abc", "s1"), { ok: false, error: "expired" })
+  assert.deepEqual(callbackOutcome("?code=abc&state=s1", null), { ok: false, error: "expired" })
+  assert.deepEqual(callbackOutcome("?code=abc&state=", ""), { ok: false, error: "expired" })
 })
 
 test("callbackOutcome handles the error param first", () => {
   assert.deepEqual(callbackOutcome("?error=access_denied&state=x", "s1"), {
     ok: false,
-    message: "RP Data sign-in was cancelled.",
+    error: "cancelled",
   })
-  assert.deepEqual(callbackOutcome("?error=server_error", "s1"), { ok: false, message: FAILED })
+  assert.deepEqual(callbackOutcome("?error=server_error", "s1"), { ok: false, error: "failed" })
 })
 
 test("callbackOutcome with no code and no error fails", () => {
-  assert.deepEqual(callbackOutcome("?state=s1", "s1"), { ok: false, message: FAILED })
-  assert.deepEqual(callbackOutcome("", "s1"), { ok: false, message: EXPIRED })
+  assert.deepEqual(callbackOutcome("?state=s1", "s1"), { ok: false, error: "failed" })
+  assert.deepEqual(callbackOutcome("", "s1"), { ok: false, error: "expired" })
 })
 
 test("isRpStatus accepts only status objects", () => {
@@ -85,4 +85,25 @@ test("shouldLoadLive only allows linked or disabled", async () => {
   assert.equal(shouldLoadLive("disabled"), true)
   assert.equal(shouldLoadLive("unlinked"), false)
   assert.equal(shouldLoadLive("unknown"), false)
+})
+
+test("rpdataErrorMessage maps known keys to fixed messages and ignores unknown ones", () => {
+  assert.equal(rpdataErrorMessage("cancelled"), "RP Data sign-in was cancelled.")
+  assert.equal(rpdataErrorMessage("expired"), "The RP Data sign-in link expired. Please try again.")
+  assert.equal(rpdataErrorMessage("failed"), "RP Data sign-in failed. Please try again.")
+  assert.equal(
+    rpdataErrorMessage("in_use"),
+    "This RP Data account is already linked to another N3X7 user. Contact your N3X7 admin.",
+  )
+  assert.equal(rpdataErrorMessage("connect_failed"), "Couldn't connect your RP Data account. Please try again.")
+  for (const k of [null, "", "Call 0400 000 000 now", "toString", "__proto__", "constructor"]) {
+    assert.equal(rpdataErrorMessage(k), null)
+  }
+})
+
+test("connectErrorKey maps an in-use conflict and everything else to connect_failed", () => {
+  assert.equal(connectErrorKey("RPDATA_IN_USE"), "in_use")
+  for (const c of ["RPDATA_INVALID_CODE", "RPDATA_UNAVAILABLE", undefined, 5]) {
+    assert.equal(connectErrorKey(c), "connect_failed")
+  }
 })
