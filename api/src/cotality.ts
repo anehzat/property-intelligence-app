@@ -65,7 +65,7 @@ export function createCotality(
 
   async function get(path: string, userToken?: string): Promise<unknown> {
     const c = await getCreds()
-    if (userToken) {
+    if (userToken !== undefined) {
       const r = await fetchFn(c.baseUrl + path, {
         headers: { Authorization: `Bearer ${userToken}`, accept: "application/json" },
       })

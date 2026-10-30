@@ -90,6 +90,8 @@ Resources:
 
   RpDataLinks:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: n3x7-rpdata-links
       BillingMode: PAY_PER_REQUEST
@@ -104,6 +106,8 @@ Resources:
 
   RpDataAccounts:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: n3x7-rpdata-accounts
       BillingMode: PAY_PER_REQUEST
@@ -118,6 +122,8 @@ Resources:
 
   RpDataKey:
     Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Description: Encrypts RP Data refresh tokens for N3X7
       EnableKeyRotation: true

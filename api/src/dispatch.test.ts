@@ -34,3 +34,14 @@ test("a loaded secret picks the mode and routes", async () => {
   assert.equal(mode, "user")
   assert.equal(r.statusCode, 404)
 })
+
+test("the resolved data auth mode is logged once, without secrets", async () => {
+  const lines: string[] = []
+  const run = () =>
+    handle({ routeKey: "GET /nope" }, async () => ({ dataAuth: "user", clientSecret: "s3cret" }), () => ({} as RouteDeps), (l) => lines.push(l))
+  await run()
+  await run()
+  const modeLines = lines.filter((l) => l.includes("data_auth_mode"))
+  assert.equal(modeLines.length, 1)
+  assert.deepEqual(JSON.parse(modeLines[0]), { event: "data_auth_mode", mode: "user" })
+})
