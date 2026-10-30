@@ -7,6 +7,8 @@ AWS_PROFILE=n3x7
 REGION=ap-southeast-2
 STACK=n3x7-api
 SMOKE_USER=smoke-test@n3x7.invalid
+# Set DATA_AUTH=user when the secret's dataAuth is "user": listing calls then expect 409 (not linked).
+DATA_AUTH=${DATA_AUTH:-client}
 
 out() {
   aws cloudformation describe-stacks --stack-name $STACK --region $REGION --profile $AWS_PROFILE \
@@ -41,6 +43,11 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" 
 check "unsupported suburb" 400 "$code"
 
 for s in Blacktown "Quakers%20Hill" "Seven%20Hills"; do
+  if [ "$DATA_AUTH" = user ]; then
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/listings?suburb=$s")
+    check "listings $s (user auth, not linked)" 409 "$code"
+    continue
+  fi
   body=$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/listings?suburb=$s")
   code=$(echo "$body" | tail -1)
   count=$(echo "$body" | sed '$d' | python3 -c 'import sys,json; print(len(json.load(sys.stdin).get("listings",[])))' 2>/dev/null || echo 0)
@@ -50,6 +57,10 @@ done
 
 # Cotality's campaign data lags search: some for-sale listings have no active campaign (404).
 # Require at least one 200 among the first page and no server errors.
+if [ "$DATA_AUTH" = user ]; then
+  code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/listings/1/campaign")
+  check "campaign (user auth, not linked)" 409 "$code"
+else
 IDS=$(curl -s -H "Authorization: Bearer $TOKEN" "$API/listings?suburb=Blacktown" \
   | python3 -c 'import sys,json; print(" ".join(str(x["cotalityId"]) for x in json.load(sys.stdin)["listings"][:10]))')
 ok=0; bad=0
@@ -59,6 +70,17 @@ for ID in $IDS; do
 done
 [ "$ok" -gt 0 ] && [ "$bad" -eq 0 ] && r=pass || r=fail
 check "campaigns ($ok with active campaign, $bad errors)" pass "$r"
+fi
+
+body=$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/rpdata/status")
+code=$(echo "$body" | tail -1)
+connected=$(echo "$body" | sed '$d' | python3 -c 'import sys,json; print(str(json.load(sys.stdin).get("connected")).lower())' 2>/dev/null || echo error)
+check "rpdata status" 200 "$code"
+check "rpdata status connected" false "$connected"
+
+code=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS -H "Origin: https://next.eronka.com" \
+  -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization,content-type" "$API/rpdata/connect")
+check "CORS preflight POST /rpdata/connect" 204 "$code"
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS -H "Origin: https://next.eronka.com" \
   -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: authorization" "$API/listings")
