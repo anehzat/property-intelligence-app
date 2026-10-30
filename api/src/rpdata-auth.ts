@@ -82,7 +82,7 @@ export function createRpAuth(
       const err = ((await r.json().catch(() => ({}))) as { error?: unknown }).error
       if (err === "invalid_grant") throw new RpAuthError("invalid_grant", "RP Data grant rejected")
       if (err === "invalid_client" || r.status === 401) throw new RpAuthError("invalid_client", "RP Data client rejected")
-      throw new RpAuthError("invalid_grant", "RP Data token request rejected")
+      throw new RpAuthError("bad_response", "RP Data token request rejected")
     }
     if (!r.ok) throw new RpAuthError("unavailable", `RP Data token endpoint failed (${r.status})`)
 

@@ -290,6 +290,14 @@ test("invalid_grant on refresh with no version change unlinks and throws 409 RPD
   assert.equal(await store.link(rec({ userId: "u2" }), null), "ok")
 })
 
+test("bad_response on refresh keeps the link and throws 502", async () => {
+  const f = fakeAuth({ refresh: async () => { throw new RpAuthError("bad_response", "x") } })
+  const { mgr, store } = setup({ auth: f.auth })
+  await store.link(rec({ accessExpiresAt: T0 }), null)
+  await rejectsWith(mgr.accessToken("u1"), 502, "RPDATA_UNAVAILABLE")
+  assert.notEqual(await store.get("u1"), null)
+})
+
 test("a failed save after a successful refresh retries 3 times then throws 502", async () => {
   const mem = createMemoryStore()
   let saves = 0

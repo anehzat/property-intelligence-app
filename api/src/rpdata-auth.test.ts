@@ -75,6 +75,11 @@ async function codeOf(res: () => Response) {
 test("400 invalid_grant maps to code invalid_grant", async () => {
   assert.equal(await codeOf(() => json({ error: "invalid_grant" }, 400)), "invalid_grant")
 })
+test("other 400 errors are config faults, not invalid_grant", async () => {
+  assert.equal(await codeOf(() => json({ error: "unsupported_grant_type" }, 400)), "bad_response")
+  assert.equal(await codeOf(() => json({ error: "invalid_request" }, 400)), "bad_response")
+  assert.equal(await codeOf(() => new Response("not json", { status: 400 })), "bad_response")
+})
 test("401 invalid_client maps to code invalid_client", async () => {
   assert.equal(await codeOf(() => json({ error: "invalid_client" }, 401)), "invalid_client")
 })
