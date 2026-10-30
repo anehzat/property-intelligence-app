@@ -2,10 +2,13 @@ import type { ListingsQuery } from "./types.ts"
 
 export class CotalityError extends Error {
   status: number
-  constructor(status: number, message: string) {
+  /** True when the failing call used a per-user RP Data token. */
+  userToken: boolean
+  constructor(status: number, message: string, userToken = false) {
     super(message)
     this.name = "CotalityError"
     this.status = status
+    this.userToken = userToken
   }
 }
 
@@ -16,9 +19,9 @@ export interface Creds {
 }
 
 export interface CotalityClient {
-  suggestLocality(query: string): Promise<number>
-  searchForSale(localityId: number, q: ListingsQuery): Promise<unknown>
-  saleCampaign(propertyId: number): Promise<unknown>
+  suggestLocality(query: string, userToken?: string): Promise<number>
+  searchForSale(localityId: number, q: ListingsQuery, userToken?: string): Promise<unknown>
+  saleCampaign(propertyId: number, userToken?: string): Promise<unknown>
 }
 
 const REFRESH_MARGIN_MS = 5 * 60_000
@@ -60,8 +63,17 @@ export function createCotality(
     return token.value
   }
 
-  async function get(path: string): Promise<unknown> {
+  async function get(path: string, userToken?: string): Promise<unknown> {
     const c = await getCreds()
+    if (userToken !== undefined) {
+      const r = await fetchFn(c.baseUrl + path, {
+        headers: { Authorization: `Bearer ${userToken}`, accept: "application/json" },
+      })
+      if (r.status === 401) throw new CotalityError(401, "user token rejected", true)
+      if (r.status === 404) return null
+      if (!r.ok) throw new CotalityError(r.status, `Cotality responded ${r.status}`, true)
+      return r.json()
+    }
     const call = async (force: boolean) =>
       fetchFn(c.baseUrl + path, {
         headers: { Authorization: `Bearer ${await getToken(force)}`, accept: "application/json" },
@@ -74,11 +86,12 @@ export function createCotality(
   }
 
   return {
-    async suggestLocality(query) {
+    async suggestLocality(query, userToken) {
       const cached = localities.get(query)
       if (cached !== undefined) return cached
       const body = (await get(
         `/property/au/v2/suggest.json?q=${encodeURIComponent(query)}&suggestionTypes=locality`,
+        userToken,
       )) as { suggestions?: { suggestionType?: string; localityId?: unknown }[] } | null
       const hit = body?.suggestions?.find(
         (s) => s.suggestionType === "locality" && typeof s.localityId === "number",
@@ -87,11 +100,11 @@ export function createCotality(
       localities.set(query, hit.localityId as number)
       return hit.localityId as number
     },
-    searchForSale(localityId, q) {
-      return get(searchPath(localityId, q))
+    searchForSale(localityId, q, userToken) {
+      return get(searchPath(localityId, q), userToken)
     },
-    saleCampaign(propertyId) {
-      return get(`/property-details/au/properties/${propertyId}/otm/campaign/sales`)
+    saleCampaign(propertyId, userToken) {
+      return get(`/property-details/au/properties/${propertyId}/otm/campaign/sales`, userToken)
     },
   }
 }

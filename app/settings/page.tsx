@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useN3X7 } from "@/lib/store"
 
 function Row({
@@ -30,7 +32,23 @@ function Row({
 }
 
 export default function SettingsPage() {
-  const { user } = useN3X7()
+  const { user, rpdata, rpUsername, disconnectRpData } = useN3X7()
+  const router = useRouter()
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [rpError, setRpError] = useState<string | null>(null)
+
+  async function disconnect() {
+    setRpError(null)
+    setDisconnecting(true)
+    try {
+      await disconnectRpData()
+      router.replace("/connect-rpdata/")
+    } catch (e) {
+      setRpError(e instanceof Error ? e.message : "Couldn't disconnect RP Data.")
+    } finally {
+      setDisconnecting(false)
+    }
+  }
 
   return (
     <ScrollArea className="h-full">
@@ -96,6 +114,16 @@ export default function SettingsPage() {
             Data sources
           </h2>
           <div className="mt-2 divide-y divide-border">
+            {rpdata === "linked" && (
+              <Row
+                title="RP Data"
+                description={rpError ?? `Connected as ${rpUsername ?? "your RP Data account"}`}
+              >
+                <Button variant="outline" onClick={disconnect} disabled={disconnecting}>
+                  Disconnect
+                </Button>
+              </Row>
+            )}
             <Row
               title="NSW Planning Portal"
               description="Live zoning, LMR and TOD precinct data."

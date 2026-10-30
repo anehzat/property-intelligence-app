@@ -46,7 +46,7 @@ function PhoneLink({ label, name, phone }: { label: string; name: string | null;
 }
 
 export function LiveDrawer() {
-  const { selectedLive: l, closeLive, isSaved, toggleSaveLive } = useN3X7()
+  const { selectedLive: l, closeLive, isSaved, toggleSaveLive, markRpDataUnlinked } = useN3X7()
   const [campaign, setCampaign] = useState<CampaignState>({ status: "loading" })
 
   useEffect(() => {
@@ -60,6 +60,7 @@ export function LiveDrawer() {
         const c = await fetchLive(campaignUrl(config.apiUrl, l.cotalityId), token, isLiveCampaign)
         if (!cancelled) setCampaign({ status: "ok", campaign: c })
       } catch (e) {
+        if (e instanceof LiveError && e.status === 409) markRpDataUnlinked()
         if (cancelled) return
         if (e instanceof LiveError && e.status === 404) setCampaign({ status: "none" })
         else setCampaign({ status: "error", message: e instanceof Error ? e.message : "Couldn't load agent details." })
@@ -68,7 +69,7 @@ export function LiveDrawer() {
     return () => {
       cancelled = true
     }
-  }, [l])
+  }, [l, markRpDataUnlinked])
 
   return (
     <Sheet open={!!l} onOpenChange={(o) => !o && closeLive()}>

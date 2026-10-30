@@ -72,7 +72,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins: !Ref AllowedOrigins
         AllowHeaders: [authorization, content-type]
-        AllowMethods: [GET, OPTIONS]
+        AllowMethods: [GET, POST, DELETE, OPTIONS]
         MaxAge: 600
       DefaultRouteSettings:
         ThrottlingBurstLimit: 20
@@ -87,6 +87,61 @@ Resources:
               audience:
                 - !Ref WebClient
                 - !Ref SmokeClient
+
+  RpDataLinks:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: n3x7-rpdata-links
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+
+  RpDataAccounts:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: n3x7-rpdata-accounts
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: rpSub
+          AttributeType: S
+      KeySchema:
+        - AttributeName: rpSub
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+
+  RpDataKey:
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Encrypts RP Data refresh tokens for N3X7
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AccountRootAdmin
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: kms:*
+            Resource: "*"
+
+  RpDataKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/n3x7-rpdata
+      TargetKeyId: !Ref RpDataKey
 
   ApiLogGroup:
     Type: AWS::Logs::LogGroup
@@ -104,15 +159,34 @@ Resources:
       Runtime: nodejs22.x
       Architectures: [arm64]
       MemorySize: 256
-      Timeout: 10
+      Timeout: 15
       Environment:
         Variables:
           SECRET_ID: !Ref SecretId
+          LINKS_TABLE: !Ref RpDataLinks
+          ACCOUNTS_TABLE: !Ref RpDataAccounts
+          KMS_KEY_ID: !GetAtt RpDataKey.Arn
+          REDIRECT_ORIGINS: !Join [",", !Ref AllowedOrigins]
       Policies:
         - Statement:
             - Effect: Allow
               Action: secretsmanager:GetSecretValue
               Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${SecretId}-*
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+              Resource:
+                - !GetAtt RpDataLinks.Arn
+                - !GetAtt RpDataAccounts.Arn
+            - Effect: Allow
+              Action:
+                - kms:Encrypt
+                - kms:Decrypt
+              Resource: !GetAtt RpDataKey.Arn
       Events:
         Listings:
           Type: HttpApi
@@ -126,6 +200,24 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /listings/{id}/campaign
             Method: GET
+        RpDataStatus:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /rpdata/status
+            Method: GET
+        RpDataConnect:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /rpdata/connect
+            Method: POST
+        RpDataDisconnect:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /rpdata/connection
+            Method: DELETE
 
 Outputs:
   ApiUrl:
