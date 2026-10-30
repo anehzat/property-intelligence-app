@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEventV2 } from "aws-lambda"
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager"
 import { createCotality, type Creds } from "./cotality.ts"
-import { route } from "./routes.ts"
+import { handle } from "./dispatch.ts"
 import { createRpAuth, type AuthCreds } from "./rpdata-auth.ts"
 import { createDynamoStore, createKmsCipher } from "./rpdata-store.ts"
 import { createTokenManager } from "./rpdata-tokens.ts"
@@ -60,7 +60,5 @@ const redirectOrigins = (process.env.REDIRECT_ORIGINS ?? "")
   .filter(Boolean)
 
 export async function handler(event: APIGatewayProxyEventV2) {
-  // A secret fetch failure falls back to "client"; the Cotality call then fails as a 502.
-  const dataAuth = (await loadSecret().catch(() => ({}) as Secret)).dataAuth === "user" ? "user" : "client"
-  return route(event, { client: cotality, tokens, dataAuth, redirectOrigins })
+  return handle(event, loadSecret, (dataAuth) => ({ client: cotality, tokens, dataAuth, redirectOrigins }))
 }
