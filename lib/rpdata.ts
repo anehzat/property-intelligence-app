@@ -68,3 +68,8 @@ export function isRpStatus(x: unknown): x is RpStatus {
 export function rpdataUrl(apiBase: string, path: "status" | "connect" | "connection"): string {
   return `${trim(apiBase)}/rpdata/${path}`
 }
+
+/** Data routes only work once the user is linked (or the RP Data step is off). */
+export function shouldLoadLive(rpdata: "unknown" | "linked" | "unlinked" | "disabled"): boolean {
+  return rpdata === "linked" || rpdata === "disabled"
+}

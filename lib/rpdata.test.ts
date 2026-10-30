@@ -78,3 +78,11 @@ test("rpdataUrl joins the base and path, trimming trailing slashes", () => {
   assert.equal(rpdataUrl("https://api.test", "connect"), "https://api.test/rpdata/connect")
   assert.equal(rpdataUrl("https://api.test//", "connection"), "https://api.test/rpdata/connection")
 })
+
+test("shouldLoadLive only allows linked or disabled", async () => {
+  const { shouldLoadLive } = await import("./rpdata.ts")
+  assert.equal(shouldLoadLive("linked"), true)
+  assert.equal(shouldLoadLive("disabled"), true)
+  assert.equal(shouldLoadLive("unlinked"), false)
+  assert.equal(shouldLoadLive("unknown"), false)
+})

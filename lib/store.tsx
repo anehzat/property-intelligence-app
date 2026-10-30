@@ -21,7 +21,7 @@ import type {
 import { defaultFilters, filterProperties, type Filters } from "./search"
 import { loadJSON, saveJSON } from "./persist"
 import { config } from "./config"
-import { isRpStatus, redirectUriFor, rpdataEnabled, rpdataUrl } from "./rpdata"
+import { isRpStatus, redirectUriFor, rpdataEnabled, rpdataUrl, shouldLoadLive } from "./rpdata"
 import {
   centerOf,
   defaultLiveQuery,
@@ -232,12 +232,12 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
   }, [])
 
   const markRpDataUnlinked = useCallback(() => {
-    setRpdata("unlinked")
+    setRpdata((s) => (s === "disabled" ? s : "unlinked"))
     setRpUsername(null)
   }, [])
 
   useEffect(() => {
-    if (dataSource !== "live" || !user) return
+    if (dataSource !== "live" || !user || !shouldLoadLive(rpdata)) return
     let cancelled = false
     setLive((s) => ({ ...s, status: "loading", error: null }))
     ;(async () => {
@@ -259,7 +259,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [dataSource, liveQuery, user, markRpDataUnlinked])
+  }, [dataSource, liveQuery, user, rpdata, markRpDataUnlinked])
 
   const refreshRpData = useCallback(async () => {
     setRpdataError(null)
