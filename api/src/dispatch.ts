@@ -11,12 +11,14 @@ let loggedMode: "client" | "user" | undefined
 export async function handle(
   event: RouteEvent,
   loadSecret: () => Promise<unknown>,
-  makeDeps: (dataAuth: "client" | "user") => RouteDeps,
+  makeDeps: (dataAuth: "client" | "user", secret: unknown) => RouteDeps,
   log: (line: string) => void = console.log,
 ): Promise<RouteResult> {
   let dataAuth: "client" | "user"
+  let secret: unknown
   try {
-    dataAuth = dataAuthFrom(await loadSecret())
+    secret = await loadSecret()
+    dataAuth = dataAuthFrom(secret)
   } catch {
     log(JSON.stringify({ requestId: event.requestContext?.requestId, route: event.routeKey, status: 502, error: "SecretLoad" }))
     return {
@@ -29,5 +31,5 @@ export async function handle(
     loggedMode = dataAuth
     log(JSON.stringify({ event: "data_auth_mode", mode: dataAuth }))
   }
-  return route(event, makeDeps(dataAuth), log)
+  return route(event, makeDeps(dataAuth, secret), log)
 }

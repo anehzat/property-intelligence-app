@@ -5,11 +5,13 @@ import {
   callbackOutcome,
   connectErrorKey,
   isRpStatus,
+  isSilentLogin,
   newState,
   redirectUriFor,
   rpdataEnabled,
   rpdataErrorMessage,
   rpdataUrl,
+  silentLoginApiUrl,
 } from "./rpdata.ts"
 
 
@@ -106,4 +108,20 @@ test("connectErrorKey maps an in-use conflict and everything else to connect_fai
   for (const c of ["RPDATA_INVALID_CODE", "RPDATA_UNAVAILABLE", undefined, 5]) {
     assert.equal(connectErrorKey(c), "connect_failed")
   }
+})
+
+test("silentLoginApiUrl targets the dashboard or one property", () => {
+  assert.equal(silentLoginApiUrl("https://api.test/", { page: "dashboard" }), "https://api.test/rpdata/silent-login?page=dashboard")
+  assert.equal(
+    silentLoginApiUrl("https://api.test", { page: "property", propertyId: 42 }),
+    "https://api.test/rpdata/silent-login?page=property&propertyId=42",
+  )
+})
+
+test("isSilentLogin accepts only an https url", () => {
+  assert.equal(isSilentLogin({ url: "https://rpp.rpdata.com/rpp/dashboard.html?x=1" }), true)
+  assert.equal(isSilentLogin({ url: "javascript:alert(1)" }), false)
+  assert.equal(isSilentLogin({ url: "http://rpp.rpdata.com" }), false)
+  assert.equal(isSilentLogin({}), false)
+  assert.equal(isSilentLogin(null), false)
 })

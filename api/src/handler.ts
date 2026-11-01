@@ -2,7 +2,9 @@ import type { APIGatewayProxyEventV2 } from "aws-lambda"
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager"
 import { createCotality, type Creds } from "./cotality.ts"
 import { handle } from "./dispatch.ts"
+import { loadLegal, type LegalSection } from "./legal.ts"
 import { createRpAuth, type AuthCreds } from "./rpdata-auth.ts"
+import { silentFrom } from "./rpdata-silent.ts"
 import { createDynamoStore, createKmsCipher } from "./rpdata-store.ts"
 import { createTokenManager } from "./rpdata-tokens.ts"
 
@@ -10,6 +12,9 @@ const secrets = new SecretsManagerClient({})
 
 interface Secret extends Partial<Creds>, Partial<AuthCreds> {
   dataAuth?: string
+  silentApiKey?: string
+  silentSecret?: string
+  rppBaseUrl?: string
 }
 
 let secretPromise: Promise<Secret> | null = null
@@ -59,6 +64,23 @@ const redirectOrigins = (process.env.REDIRECT_ORIGINS ?? "")
   .map((o) => o.trim().replace(/\/+$/, ""))
   .filter(Boolean)
 
+/** Disclaimer wording changes rarely: one fetch per container every 6 hours. */
+const LEGAL_TTL_MS = 6 * 60 * 60_000
+let legalCache: { at: number; sections: Promise<LegalSection[]> } | null = null
+function legal(): Promise<LegalSection[]> {
+  if (!legalCache || Date.now() - legalCache.at > LEGAL_TTL_MS) {
+    legalCache = { at: Date.now(), sections: loadLegal((category, key) => cotality.legalContent(category, key)) }
+  }
+  return legalCache.sections
+}
+
 export async function handler(event: APIGatewayProxyEventV2) {
-  return handle(event, loadSecret, (dataAuth) => ({ client: cotality, tokens, dataAuth, redirectOrigins }))
+  return handle(event, loadSecret, (dataAuth, secret) => ({
+    client: cotality,
+    tokens,
+    dataAuth,
+    redirectOrigins,
+    silent: silentFrom(secret),
+    legal,
+  }))
 }

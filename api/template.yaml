@@ -218,6 +218,18 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /rpdata/connection
             Method: DELETE
+        RpDataSilentLogin:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /rpdata/silent-login
+            Method: GET
+        LegalDisclaimers:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /legal/disclaimers
+            Method: GET
 
 Outputs:
   ApiUrl:

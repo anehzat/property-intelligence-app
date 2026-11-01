@@ -72,6 +72,8 @@ export function callbackOutcome(search: string, savedState: string | null): Call
 export interface RpStatus {
   connected: boolean
   username?: string
+  /** True once Cotality's silent login key and secret are configured on the API. */
+  silentLogin?: boolean
 }
 
 export function isRpStatus(x: unknown): x is RpStatus {
@@ -80,6 +82,20 @@ export function isRpStatus(x: unknown): x is RpStatus {
 
 export function rpdataUrl(apiBase: string, path: "status" | "connect" | "connection"): string {
   return `${trim(apiBase)}/rpdata/${path}`
+}
+
+export type SilentTarget = { page: "dashboard" } | { page: "property"; propertyId: number }
+
+/** The API route that signs a silent login URL into RP Data for the signed-in user. */
+export function silentLoginApiUrl(apiBase: string, target: SilentTarget): string {
+  const q = target.page === "property" ? `?page=property&propertyId=${target.propertyId}` : "?page=dashboard"
+  return `${trim(apiBase)}/rpdata/silent-login${q}`
+}
+
+/** Accepts only an https URL, so nothing else from the response is ever navigated to. */
+export function isSilentLogin(x: unknown): x is { url: string } {
+  const url = (x as { url?: unknown } | null)?.url
+  return typeof url === "string" && url.startsWith("https://")
 }
 
 /** Data routes only work once the user is linked (or the RP Data step is off). */

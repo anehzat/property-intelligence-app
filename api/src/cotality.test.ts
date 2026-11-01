@@ -128,3 +128,17 @@ test("a 401 with a user token throws without retrying", async () => {
   )
   assert.equal(f.calls.length, 1)
 })
+
+test("legalContent calls Content Services with the application token", async () => {
+  let auth = ""
+  const f = fakeFetch((url, init) => {
+    const t = tokenOk(url)
+    if (t) return t
+    auth = String((init?.headers as Record<string, string>).Authorization)
+    return json({ key: "clData_anz", content: "x" })
+  })
+  const c = createCotality(creds, f.fn, () => 0)
+  assert.deepEqual(await c.legalContent("disclaimers", "clData_anz"), { key: "clData_anz", content: "x" })
+  assert.equal(f.calls.at(-1), "https://cot.test/content/legal/disclaimers/clData_anz")
+  assert.equal(auth, "Bearer t1")
+})

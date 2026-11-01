@@ -104,6 +104,8 @@ interface N3X7State {
   toggleSaveLive: (l: LiveListing) => void
   rpdata: RpDataState
   rpUsername: string | null
+  /** Whether the API can open RP Data via silent login. */
+  rpSilentLogin: boolean
   rpdataError: string | null
   refreshRpData: () => Promise<void>
   connectRpData: (code: string) => Promise<{ ok: true } | { ok: false; error: RpErrorKey }>
@@ -148,6 +150,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
   const [savedLive, setSavedLive] = useState<Record<string, LiveListing>>({})
   const [rpdata, setRpdata] = useState<RpDataState>("unknown")
   const [rpUsername, setRpUsername] = useState<string | null>(null)
+  const [rpSilentLogin, setRpSilentLogin] = useState(false)
   const [rpdataError, setRpdataError] = useState<string | null>(null)
   const [chat, setChat] = useState<ChatMessage[]>([
     {
@@ -267,6 +270,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       const s = await fetchLive(rpdataUrl(config.apiUrl, "status"), token, isRpStatus)
       setRpdata(s.connected ? "linked" : "unlinked")
       setRpUsername(s.connected ? (s.username ?? null) : null)
+      setRpSilentLogin(s.silentLogin === true)
     } catch {
       setRpdataError("Couldn't check your RP Data connection.")
     }
@@ -425,6 +429,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       toggleSaveLive,
       rpdata,
       rpUsername,
+      rpSilentLogin,
       rpdataError,
       refreshRpData,
       connectRpData,
@@ -467,6 +472,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       toggleSaveLive,
       rpdata,
       rpUsername,
+      rpSilentLogin,
       rpdataError,
       refreshRpData,
       connectRpData,

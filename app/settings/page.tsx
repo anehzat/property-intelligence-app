@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useN3X7 } from "@/lib/store"
+import { OpenInRpData } from "@/components/cotality-legal"
 
 function Row({
   title,
@@ -119,9 +120,12 @@ export default function SettingsPage() {
                 title="RP Data"
                 description={rpError ?? `Connected as ${rpUsername ?? "your RP Data account"}`}
               >
-                <Button variant="outline" onClick={disconnect} disabled={disconnecting}>
-                  Disconnect
-                </Button>
+                <div className="flex items-start gap-2">
+                  <OpenInRpData target={{ page: "dashboard" }} />
+                  <Button variant="outline" onClick={disconnect} disabled={disconnecting}>
+                    Disconnect
+                  </Button>
+                </div>
               </Row>
             )}
             <Row

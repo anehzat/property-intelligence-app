@@ -22,6 +22,8 @@ export interface CotalityClient {
   suggestLocality(query: string, userToken?: string): Promise<number>
   searchForSale(localityId: number, q: ListingsQuery, userToken?: string): Promise<unknown>
   saleCampaign(propertyId: number, userToken?: string): Promise<unknown>
+  /** Cotality Content Services (disclaimers, copyright). Always the application token. */
+  legalContent(category: "copyrights" | "disclaimers", key: string): Promise<unknown>
 }
 
 const REFRESH_MARGIN_MS = 5 * 60_000
@@ -105,6 +107,9 @@ export function createCotality(
     },
     saleCampaign(propertyId, userToken) {
       return get(`/property-details/au/properties/${propertyId}/otm/campaign/sales`, userToken)
+    },
+    legalContent(category, key) {
+      return get(`/content/legal/${category}/${encodeURIComponent(key)}`)
     },
   }
 }
