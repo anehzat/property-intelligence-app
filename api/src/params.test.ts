@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { BadRequest, parseListingsQuery, parsePropertyId } from "./params.ts"
+import { BadRequest, parseConnectBody, parseListingsQuery, parsePropertyId } from "./params.ts"
 
 test("parseListingsQuery accepts supported suburbs case-insensitively", () => {
   assert.deepEqual(parseListingsQuery({ suburb: "quakers hill" }), {
@@ -34,4 +34,27 @@ test("parsePropertyId accepts digits only", () => {
   for (const v of [undefined, "", "abc", "12/../3", "1".repeat(13)]) {
     assert.throws(() => parsePropertyId(v), BadRequest, String(v))
   }
+})
+
+const origins = ["https://next.eronka.com"]
+const cb = (o: object) => JSON.stringify(o)
+
+test("parseConnectBody accepts an allowlisted redirect URI", () => {
+  assert.deepEqual(
+    parseConnectBody(cb({ code: "c1", redirectUri: "https://next.eronka.com/auth/rpdata/callback/" }), origins),
+    { code: "c1", redirectUri: "https://next.eronka.com/auth/rpdata/callback/" },
+  )
+  const b64 = Buffer.from(cb({ code: "c1", redirectUri: "https://next.eronka.com/auth/rpdata/callback/" })).toString("base64")
+  assert.equal(parseConnectBody(b64, origins, true).code, "c1")
+})
+
+test("parseConnectBody rejects another origin, a path without the trailing slash, a missing code, and non-JSON", () => {
+  const bad = [
+    cb({ code: "c1", redirectUri: "https://evil.test/auth/rpdata/callback/" }),
+    cb({ code: "c1", redirectUri: "https://next.eronka.com/auth/rpdata/callback" }),
+    cb({ redirectUri: "https://next.eronka.com/auth/rpdata/callback/" }),
+    "not json",
+    undefined,
+  ]
+  for (const b of bad) assert.throws(() => parseConnectBody(b, origins), BadRequest)
 })

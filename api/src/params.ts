@@ -50,3 +50,24 @@ export function parsePropertyId(v: string | undefined): number {
   if (!v || !/^\d{1,12}$/.test(v)) throw new BadRequest("id must be a numeric Cotality property id")
   return Number(v)
 }
+
+/** Parses the POST /rpdata/connect body. The redirect URI is rebuilt from an allowlisted origin. */
+export function parseConnectBody(
+  body: string | undefined,
+  redirectOrigins: string[],
+  isBase64 = false,
+): { code: string; redirectUri: string } {
+  let parsed: unknown
+  try {
+    const text = body && isBase64 ? Buffer.from(body, "base64").toString("utf8") : (body ?? "")
+    parsed = JSON.parse(text)
+  } catch {
+    throw new BadRequest("Request body must be JSON")
+  }
+  const { code, redirectUri } = (parsed ?? {}) as { code?: unknown; redirectUri?: unknown }
+  if (typeof code !== "string" || !code.trim() || code.length > 2048) throw new BadRequest("code is required")
+  if (typeof redirectUri !== "string") throw new BadRequest("redirectUri is required")
+  const origin = redirectOrigins.find((o) => redirectUri === `${o}/auth/rpdata/callback/`)
+  if (!origin) throw new BadRequest("redirectUri is not allowed")
+  return { code, redirectUri }
+}

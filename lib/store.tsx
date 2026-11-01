@@ -21,12 +21,15 @@ import type {
 import { defaultFilters, filterProperties, type Filters } from "./search"
 import { loadJSON, saveJSON } from "./persist"
 import { config } from "./config"
+import { connectErrorKey, isRpStatus, redirectUriFor, rpdataEnabled, rpdataUrl, shouldLoadLive } from "./rpdata"
+import type { RpErrorKey } from "./rpdata"
 import {
   centerOf,
   defaultLiveQuery,
   fetchLive,
   isListingsResponse,
   listingsUrl,
+  LiveError,
   type LiveQuery,
 } from "./live"
 import {
@@ -45,6 +48,9 @@ export interface FlyTarget {
 }
 
 export type DataSource = "demo" | "live"
+
+export type RpDataState = "unknown" | "linked" | "unlinked" | "disabled"
+
 
 export interface LiveState {
   status: "idle" | "loading" | "ok" | "error"
@@ -96,6 +102,13 @@ interface N3X7State {
   closeLive: () => void
   savedLive: Record<string, LiveListing>
   toggleSaveLive: (l: LiveListing) => void
+  rpdata: RpDataState
+  rpUsername: string | null
+  rpdataError: string | null
+  refreshRpData: () => Promise<void>
+  connectRpData: (code: string) => Promise<{ ok: true } | { ok: false; error: RpErrorKey }>
+  disconnectRpData: () => Promise<void>
+  markRpDataUnlinked: () => void
 }
 
 const N3X7Context = createContext<N3X7State | null>(null)
@@ -133,6 +146,9 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
   const [live, setLive] = useState<LiveState>(idleLive)
   const [selectedLive, setSelectedLive] = useState<LiveListing | null>(null)
   const [savedLive, setSavedLive] = useState<Record<string, LiveListing>>({})
+  const [rpdata, setRpdata] = useState<RpDataState>("unknown")
+  const [rpUsername, setRpUsername] = useState<string | null>(null)
+  const [rpdataError, setRpdataError] = useState<string | null>(null)
   const [chat, setChat] = useState<ChatMessage[]>([
     {
       id: "seed-1",
@@ -213,8 +229,13 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const markRpDataUnlinked = useCallback(() => {
+    setRpdata((s) => (s === "disabled" ? s : "unlinked"))
+    setRpUsername(null)
+  }, [])
+
   useEffect(() => {
-    if (dataSource !== "live" || !user) return
+    if (dataSource !== "live" || !user || !shouldLoadLive(rpdata)) return
     let cancelled = false
     setLive((s) => ({ ...s, status: "loading", error: null }))
     ;(async () => {
@@ -228,6 +249,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
         if (center) setFlyTarget({ center, zoom: 14, key: Date.now() })
       } catch (e) {
         if (!cancelled) {
+          if (e instanceof LiveError && e.status === 409) markRpDataUnlinked()
           setLive({ ...idleLive, status: "error", error: e instanceof Error ? e.message : "Something went wrong." })
         }
       }
@@ -235,7 +257,64 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [dataSource, liveQuery, user])
+  }, [dataSource, liveQuery, user, rpdata, markRpDataUnlinked])
+
+  const refreshRpData = useCallback(async () => {
+    setRpdataError(null)
+    try {
+      const token = await getIdToken()
+      if (!token) throw new Error("Your session has expired. Sign in again.")
+      const s = await fetchLive(rpdataUrl(config.apiUrl, "status"), token, isRpStatus)
+      setRpdata(s.connected ? "linked" : "unlinked")
+      setRpUsername(s.connected ? (s.username ?? null) : null)
+    } catch {
+      setRpdataError("Couldn't check your RP Data connection.")
+    }
+  }, [])
+
+  const connectRpData = useCallback(async (code: string) => {
+    try {
+      const token = await getIdToken()
+      if (!token) return { ok: false as const, error: "connect_failed" as const }
+      const r = await fetch(rpdataUrl(config.apiUrl, "connect"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ code, redirectUri: redirectUriFor(window.location.origin) }),
+      })
+      const body: unknown = await r.json().catch(() => null)
+      const b = (body ?? {}) as { error?: unknown; code?: unknown; connected?: unknown; username?: unknown }
+      if (!r.ok) {
+        return { ok: false as const, error: connectErrorKey(b.code) }
+      }
+      setRpdata("linked")
+      setRpUsername(typeof b.username === "string" ? b.username : null)
+      return { ok: true as const }
+    } catch {
+      return { ok: false as const, error: "connect_failed" as const }
+    }
+  }, [])
+
+  const disconnectRpData = useCallback(async () => {
+    const token = await getIdToken()
+    if (!token) throw new Error("Your session has expired. Sign in again.")
+    const r = await fetch(rpdataUrl(config.apiUrl, "connection"), {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!r.ok) throw new Error("Couldn't disconnect RP Data. Please try again.")
+    setRpdata("unlinked")
+    setRpUsername(null)
+  }, [])
+
+  // Once signed in, find out whether this user has linked an RP Data account.
+  useEffect(() => {
+    if (!user) return
+    if (!rpdataEnabled(config.rpdataAuthUrl, config.rpdataClientId)) {
+      setRpdata("disabled")
+      return
+    }
+    void refreshRpData()
+  }, [user, refreshRpData])
 
   const requestContract = useCallback(async (id: string, message: string) => {
     await new Promise((r) => setTimeout(r, 800))
@@ -270,6 +349,9 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
     setLiveQueryState(defaultLiveQuery)
     setLive(idleLive)
     setSelectedLive(null)
+    setRpdata("unknown")
+    setRpUsername(null)
+    setRpdataError(null)
   }, [])
 
   const askAi = useCallback((question: string) => {
@@ -341,6 +423,13 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       closeLive,
       savedLive,
       toggleSaveLive,
+      rpdata,
+      rpUsername,
+      rpdataError,
+      refreshRpData,
+      connectRpData,
+      disconnectRpData,
+      markRpDataUnlinked,
     }),
     [
       savedIds,
@@ -376,6 +465,13 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       closeLive,
       savedLive,
       toggleSaveLive,
+      rpdata,
+      rpUsername,
+      rpdataError,
+      refreshRpData,
+      connectRpData,
+      disconnectRpData,
+      markRpDataUnlinked,
     ],
   )
 

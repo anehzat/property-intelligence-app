@@ -8,6 +8,8 @@ REGION=ap-southeast-2
 SECRET_ID=n3x7/cotality
 ENV_FILE=${1:-$HOME/.config/n3x7/cotality.env}
 export COTALITY_BASE_URL=${COTALITY_BASE_URL:-https://api-sbox.corelogic.asia}
+export COTALITY_AUTH_BASE_URL=${COTALITY_AUTH_BASE_URL:-https://auth.corelogic.asia}
+export COTALITY_DATA_AUTH=${COTALITY_DATA_AUTH:-client}
 
 echo "🔐 Reading credentials from $ENV_FILE..."
 set -a
@@ -20,15 +22,16 @@ set +a
 TMP=$(mktemp)
 chmod 600 "$TMP"
 trap 'rm -f "$TMP"' EXIT
-python3 -c 'import json,os; print(json.dumps({"clientId": os.environ["COTALITY_CLIENT_ID"], "clientSecret": os.environ["COTALITY_CLIENT_SECRET"], "baseUrl": os.environ["COTALITY_BASE_URL"]}))' > "$TMP"
+# Optional values are left out of the JSON when empty.
+python3 -c 'import json,os; e=os.environ.get; d={"clientId": e("COTALITY_CLIENT_ID"), "clientSecret": e("COTALITY_CLIENT_SECRET"), "baseUrl": e("COTALITY_BASE_URL"), "authBaseUrl": e("COTALITY_AUTH_BASE_URL"), "userClientId": e("COTALITY_USER_CLIENT_ID"), "userClientSecret": e("COTALITY_USER_CLIENT_SECRET"), "dataAuth": e("COTALITY_DATA_AUTH")}; print(json.dumps({k: v for k, v in d.items() if v}))' > "$TMP"
 
 if aws secretsmanager describe-secret --secret-id $SECRET_ID --region $REGION --profile $AWS_PROFILE > /dev/null 2>&1; then
   aws secretsmanager put-secret-value --secret-id $SECRET_ID --secret-string "file://$TMP" \
     --region $REGION --profile $AWS_PROFILE > /dev/null
-  echo "✅ Updated secret $SECRET_ID (base URL: $COTALITY_BASE_URL)"
+  echo "✅ Updated secret $SECRET_ID (base URL: $COTALITY_BASE_URL, data auth: $COTALITY_DATA_AUTH)"
 else
   aws secretsmanager create-secret --name $SECRET_ID --secret-string "file://$TMP" \
     --description "Cotality API client credentials for N3X7" \
     --region $REGION --profile $AWS_PROFILE > /dev/null
-  echo "✅ Created secret $SECRET_ID (base URL: $COTALITY_BASE_URL)"
+  echo "✅ Created secret $SECRET_ID (base URL: $COTALITY_BASE_URL, data auth: $COTALITY_DATA_AUTH)"
 fi
