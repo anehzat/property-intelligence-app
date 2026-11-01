@@ -14,6 +14,7 @@ import L from "leaflet"
 import { Crosshair, Layers, Locate, Plus, Minus } from "lucide-react"
 import { MAP_CENTER, planningZones, layerMeta, properties } from "@/lib/mock-data"
 import type { LiveListing, Property } from "@/lib/types"
+import { CotalityLogo } from "./cotality-legal"
 import { useN3X7 } from "@/lib/store"
 import { features } from "@/lib/config"
 import { formatPriceShort } from "@/lib/format"
@@ -364,6 +365,11 @@ export default function PropertyMap() {
         <MapControls />
         <MapLegend overlayStatus={overlayStatus} />
       </MapContainer>
+      {dataSource === "live" && live.listings.length > 0 && (
+        <div className="glass pointer-events-none absolute bottom-2 left-2 z-[500] rounded-lg px-2 py-1">
+          <CotalityLogo />
+        </div>
+      )}
     </div>
   )
 }

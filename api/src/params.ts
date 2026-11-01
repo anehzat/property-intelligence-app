@@ -1,4 +1,5 @@
 import type { ListingsQuery } from "./types.ts"
+import type { SilentTarget } from "./rpdata-silent.ts"
 
 /** Sandbox-supported suburbs → the query sent to Cotality's suggest service. */
 export const SUPPORTED_SUBURBS: Record<string, string> = {
@@ -70,4 +71,11 @@ export function parseConnectBody(
   const origin = redirectOrigins.find((o) => redirectUri === `${o}/auth/rpdata/callback/`)
   if (!origin) throw new BadRequest("redirectUri is not allowed")
   return { code, redirectUri }
+}
+
+/** Parses GET /rpdata/silent-login: the RP Data dashboard, or one property's page. */
+export function parseSilentTarget(q: Record<string, string | undefined>): SilentTarget {
+  if (q.page === "dashboard" || q.page === undefined) return { page: "dashboard" }
+  if (q.page === "property") return { page: "property", propertyId: parsePropertyId(q.propertyId) }
+  throw new BadRequest("page must be dashboard or property")
 }

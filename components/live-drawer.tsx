@@ -10,6 +10,7 @@ import type { LiveCampaign } from "@/lib/types"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { CotalityDisclaimers, CotalityLogo, OpenInRpData } from "./cotality-legal"
 
 type CampaignState =
   | { status: "loading" }
@@ -79,9 +80,12 @@ export function LiveDrawer() {
             <img src={l.image ?? "/placeholder.svg"} alt={l.address} className="h-60 w-full object-cover" />
             <div className="space-y-5 p-5">
               <div>
-                <span className="rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-                  Live · Cotality sandbox
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                    Live · Cotality sandbox
+                  </span>
+                  <CotalityLogo />
+                </div>
                 <h2 className="mt-2 text-lg font-semibold text-foreground">{l.address}</h2>
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="size-3" />
@@ -149,6 +153,10 @@ export function LiveDrawer() {
                 <Bookmark className={cn("size-4", isSaved(l.id) && "fill-current")} />
                 {isSaved(l.id) ? "Saved" : "Save"}
               </Button>
+
+              <OpenInRpData target={{ page: "property", propertyId: l.cotalityId }} />
+
+              <CotalityDisclaimers />
             </div>
           </>
         )}

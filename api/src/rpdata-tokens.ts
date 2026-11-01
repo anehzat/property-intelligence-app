@@ -9,6 +9,7 @@ export type RpDataCode =
   | "RPDATA_INVALID_CODE"
   | "RPDATA_BUSY"
   | "RPDATA_UNAVAILABLE"
+  | "RPDATA_SILENT_UNAVAILABLE"
 
 export class RpDataError extends Error {
   status: RpDataStatus

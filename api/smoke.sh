@@ -78,6 +78,17 @@ connected=$(echo "$body" | sed '$d' | python3 -c 'import sys,json; print(str(jso
 check "rpdata status" 200 "$code"
 check "rpdata status connected" false "$connected"
 
+# The smoke user is never linked: 409 once silent login is configured, 503 before.
+code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/rpdata/silent-login")
+case "$code" in 409|503) r=pass ;; *) r="fail ($code)" ;; esac
+check "rpdata silent-login (unlinked)" pass "$r"
+
+body=$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/legal/disclaimers")
+code=$(echo "$body" | tail -1)
+count=$(echo "$body" | sed '$d' | python3 -c 'import sys,json; print(len(json.load(sys.stdin).get("sections", [])))' 2>/dev/null || echo error)
+check "legal disclaimers" 200 "$code"
+check "legal disclaimers sections" 4 "$count"
+
 code=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS -H "Origin: https://next.eronka.com" \
   -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization,content-type" "$API/rpdata/connect")
 check "CORS preflight POST /rpdata/connect" 204 "$code"

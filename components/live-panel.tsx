@@ -5,6 +5,7 @@ import { useN3X7 } from "@/lib/store"
 import { LIVE_SUBURBS, LIVE_TYPES, landAreaOptions } from "@/lib/live"
 import { LiveListingCard } from "./live-listing-card"
 import { SourceSwitch } from "./source-switch"
+import { CotalityDisclaimers, CotalityLogo } from "./cotality-legal"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -19,7 +20,10 @@ export function LivePanel() {
       <div className="shrink-0 space-y-3 border-b border-border px-4 py-4">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Property Discovery</h2>
+            <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
+              Property Discovery
+              <CotalityLogo />
+            </h2>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <TrendingUp className="size-3.5 text-success" />
               {live.status === "ok" ? `${live.total} for sale in ${q.suburb}` : `Live listings in ${q.suburb}`}
@@ -128,6 +132,7 @@ export function LivePanel() {
                   </Button>
                 </div>
               )}
+              <CotalityDisclaimers />
             </>
           )}
         </div>

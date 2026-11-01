@@ -1,6 +1,15 @@
 import { CotalityError, type CotalityClient } from "./cotality.ts"
 import { mapCampaign, mapSearch } from "./map.ts"
-import { BadRequest, SUPPORTED_SUBURBS, parseConnectBody, parseListingsQuery, parsePropertyId } from "./params.ts"
+import type { LegalSection } from "./legal.ts"
+import {
+  BadRequest,
+  SUPPORTED_SUBURBS,
+  parseConnectBody,
+  parseListingsQuery,
+  parsePropertyId,
+  parseSilentTarget,
+} from "./params.ts"
+import { silentLoginUrl, type SilentCreds } from "./rpdata-silent.ts"
 import { RpDataError, type TokenManager } from "./rpdata-tokens.ts"
 
 export interface RouteEvent {
@@ -20,6 +29,11 @@ export interface RouteDeps {
   tokens: TokenManager
   dataAuth: "client" | "user"
   redirectOrigins: string[]
+  /** Null until Cotality has issued the silent login API key and secret. */
+  silent: SilentCreds | null
+  /** Cotality disclaimers for the data N3X7 shows; never fails (falls back to a stored copy). */
+  legal: () => Promise<LegalSection[]>
+  now?: () => Date
 }
 
 class Unauthorized extends Error {
@@ -75,7 +89,20 @@ export async function route(
 
     if (event.routeKey === "GET /rpdata/status") {
       status = 200
-      return json(status, await tokens.status(requireUser()))
+      return json(status, { ...(await tokens.status(requireUser())), silentLogin: deps.silent !== null })
+    }
+    if (event.routeKey === "GET /rpdata/silent-login") {
+      const id = requireUser()
+      const target = parseSilentTarget(event.queryStringParameters ?? {})
+      if (!deps.silent) throw new RpDataError(503, "RPDATA_SILENT_UNAVAILABLE", "RP Data silent login isn't set up yet")
+      const url = silentLoginUrl(deps.silent, await tokens.accessToken(id), target, (deps.now ?? (() => new Date()))())
+      status = 200
+      // Carries a live token: never cache it.
+      return { ...json(status, { url }), headers: { "content-type": "application/json", "cache-control": "no-store" } }
+    }
+    if (event.routeKey === "GET /legal/disclaimers") {
+      status = 200
+      return json(status, { sections: await deps.legal() })
     }
     if (event.routeKey === "POST /rpdata/connect") {
       const id = requireUser()

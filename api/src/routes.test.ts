@@ -19,6 +19,7 @@ function client(over: Partial<CotalityClient> = {}): CotalityClient & { queries:
     async saleCampaign() {
       return { forSalePropertyCampaign: { campaigns: [{ isActiveCampaign: true, agent: { agent: "A" } }] } }
     },
+    async legalContent() { return null },
     ...over,
   }
 }
@@ -40,8 +41,11 @@ const deps = (client: CotalityClient, over: Partial<RouteDeps> = {}): RouteDeps 
   tokens: tokens(),
   dataAuth: "client",
   redirectOrigins: ["https://next.eronka.com"],
+  silent: null,
+  legal: async () => [{ key: "clData_anz", title: "Cotality General Disclaimer", paragraphs: ["p1"] }],
   ...over,
 })
+const silentCreds = { apiKey: "key", secret: "s", rppBaseUrl: "https://rpp.test/rpp" }
 const authed = (sub = "user-1") => ({ authorizer: { jwt: { claims: { sub } } } })
 const body = (r: { body: string }) => JSON.parse(r.body)
 
@@ -120,8 +124,14 @@ test("GET /rpdata/status returns the manager's status for claims.sub", async () 
   const tk = tokens()
   const r = await route({ routeKey: "GET /rpdata/status", requestContext: authed("u9") }, deps(client(), { tokens: tk }), silent)
   assert.equal(r.statusCode, 200)
-  assert.deepEqual(body(r), { connected: true, username: "u@x.com" })
+  assert.deepEqual(body(r), { connected: true, username: "u@x.com", silentLogin: false })
   assert.deepEqual(tk.calls, ["status:u9"])
+  const on = await route(
+    { routeKey: "GET /rpdata/status", requestContext: authed("u9") },
+    deps(client(), { silent: silentCreds }),
+    silent,
+  )
+  assert.equal(body(on).silentLogin, true)
 })
 
 test("POST /rpdata/connect returns 200 {connected, username}", async () => {
@@ -176,7 +186,7 @@ test("DELETE /rpdata/connection returns 204", async () => {
 
 test("a missing claims.sub is 401", async () => {
   const tk = tokens()
-  for (const routeKey of ["GET /rpdata/status", "POST /rpdata/connect", "DELETE /rpdata/connection"]) {
+  for (const routeKey of ["GET /rpdata/status", "POST /rpdata/connect", "DELETE /rpdata/connection", "GET /rpdata/silent-login"]) {
     const r = await route({ routeKey, body: connectBody }, deps(client(), { tokens: tk }), silent)
     assert.equal(r.statusCode, 401)
     assert.deepEqual(body(r), { error: "Unauthorized" })
@@ -231,4 +241,65 @@ test("client mode never calls tokens.accessToken", async () => {
   )
   assert.deepEqual(tk.calls, [])
   assert.deepEqual(seen, [undefined])
+})
+
+test("GET /rpdata/silent-login signs a dashboard URL with the user's token, uncached", async () => {
+  const tk = tokens()
+  const r = await route(
+    { routeKey: "GET /rpdata/silent-login", requestContext: authed("u9") },
+    deps(client(), { tokens: tk, silent: silentCreds, now: () => new Date("2026-11-02T00:00:00Z") }),
+    silent,
+  )
+  assert.equal(r.statusCode, 200)
+  assert.equal(r.headers["cache-control"], "no-store")
+  const url = new URL(body(r).url)
+  assert.equal(url.origin + url.pathname, "https://rpp.test/rpp/dashboard.html")
+  assert.equal(url.searchParams.get("oauthToken"), "user-token")
+  assert.equal(url.searchParams.get("apiKey"), "key")
+  assert.match(url.searchParams.get("hash") ?? "", /^[0-9a-f]{64}$/)
+  assert.deepEqual(tk.calls, ["token:u9"])
+})
+
+test("GET /rpdata/silent-login opens a property page", async () => {
+  const r = await route(
+    { routeKey: "GET /rpdata/silent-login", queryStringParameters: { page: "property", propertyId: "123" }, requestContext: authed() },
+    deps(client(), { silent: silentCreds }),
+    silent,
+  )
+  const url = new URL(body(r).url)
+  assert.equal(url.pathname, "/rpp/property/detail.html")
+  assert.equal(url.searchParams.get("propertyId"), "123")
+})
+
+test("GET /rpdata/silent-login is 503 until configured and 400 for a bad target, without a token", async () => {
+  const tk = tokens()
+  const off = await route({ routeKey: "GET /rpdata/silent-login", requestContext: authed() }, deps(client(), { tokens: tk }), silent)
+  assert.equal(off.statusCode, 503)
+  assert.equal(body(off).code, "RPDATA_SILENT_UNAVAILABLE")
+  for (const q of [{ page: "admin" }, { page: "property" }, { page: "property", propertyId: "x1" }]) {
+    const bad = await route(
+      { routeKey: "GET /rpdata/silent-login", queryStringParameters: q, requestContext: authed() },
+      deps(client(), { tokens: tk, silent: silentCreds }),
+      silent,
+    )
+    assert.equal(bad.statusCode, 400)
+  }
+  assert.deepEqual(tk.calls, [])
+})
+
+test("GET /rpdata/silent-login for an unlinked user is 409", async () => {
+  const tk = tokens({ async accessToken() { throw new RpDataError(409, "RPDATA_NOT_LINKED", "RP Data not linked") } })
+  const r = await route(
+    { routeKey: "GET /rpdata/silent-login", requestContext: authed() },
+    deps(client(), { tokens: tk, silent: silentCreds }),
+    silent,
+  )
+  assert.equal(r.statusCode, 409)
+  assert.equal(body(r).code, "RPDATA_NOT_LINKED")
+})
+
+test("GET /legal/disclaimers returns the sections", async () => {
+  const r = await route({ routeKey: "GET /legal/disclaimers" }, deps(client()), silent)
+  assert.equal(r.statusCode, 200)
+  assert.deepEqual(body(r), { sections: [{ key: "clData_anz", title: "Cotality General Disclaimer", paragraphs: ["p1"] }] })
 })

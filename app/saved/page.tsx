@@ -6,6 +6,7 @@ import { features } from "@/lib/config"
 import { formatPrice, formatRelative, opportunityStyle, typeLabel } from "@/lib/format"
 import { ScoreRing } from "@/components/score-card"
 import { LiveListingCard } from "@/components/live-listing-card"
+import { CotalityDisclaimers, CotalityLogo } from "@/components/cotality-legal"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -150,12 +151,16 @@ export default function SavedPage() {
           </div>
           {savedLiveList.length > 0 && (
             <section className="mt-8 space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">Live listings (Cotality)</h2>
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                Live listings (Cotality)
+                <CotalityLogo />
+              </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {savedLiveList.map((l) => (
                   <LiveListingCard key={l.id} listing={l} />
                 ))}
               </div>
+              <CotalityDisclaimers />
             </section>
           )}
           </>

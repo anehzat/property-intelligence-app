@@ -8,7 +8,7 @@ This document lists every Cotality (formerly CoreLogic) API endpoint the N3X7 ap
 
 - **Environment:** Cotality sandbox, `https://api-sbox.corelogic.asia`.
 - **Coverage:** the sandbox has data for three NSW suburbs only: Blacktown, Quakers Hill and Seven Hills.
-- **Auth:** OAuth 2.0 client credentials (application-level). We do not use the RP.Inside user login.
+- **Auth:** OAuth 2.0 client credentials (application-level) today. The RP.Inside user login (authorization code, per-user tokens) is built and switches on once Cotality issues our user Client ID and Secret.
 
 ## 2. How a call travels
 
@@ -92,7 +92,11 @@ sequenceDiagram
 | 3 | `GET /search/au/property/locality/{localityId}/otmForSale` | **Property sales data:** properties currently for sale in a suburb | `activeCampaign=true`, `size=20`, `page`, optional `pTypes` (HOUSE, UNIT, LAND), optional `landArea` (`{min}-`) | `propertySummary`: `id`, `coordinate`, `address.singleLineAddress`, `propertyType`, `attributes` (bedrooms, bathrooms, carSpaces, landArea), `propertyPhoto.mediumPhotoUrl`, `otmForSaleDetail` (priceDescription, method, date, **agent**, **agency**); `page.totalPages`, `page.totalElements` | Every list load, filter change or page change. Not cached. |
 | 4 | `GET /property-details/au/properties/{propertyId}/otm/campaign/sales` | **Property details data:** the active sale campaign, including agent contact details | `propertyId` from call 3 | Active entry of `forSalePropertyCampaign.campaigns[]`: `agent.agent`, `agent.phoneNumber`, `agency.companyName`, `agency.phoneNumber`, `priceDescription` / `latestAdvertisementPrice`, `auctionDate`, `daysOnMarket` | Each time a property drawer opens. Not cached. |
 
+| 5 | `GET /content/legal/{copyrights\|disclaimers}/{key}` | **Content Services:** the current disclaimer wording | keys `clCopyright_au`, `clData_anz`, `stateNsw_au`, `map_anz` | `content` (light HTML, turned into plain paragraphs) | Behind our `GET /legal/disclaimers`. Once per Lambda instance every 6 hours; a stored copy is used if a call fails. |
+
 Without `activeCampaign=true`, call 3 also returns old listings back to 2007, so we always send it.
+
+**Silent login** (RP.Inside guide pages 8–9) is not an API call: our `GET /rpdata/silent-login` signs an RP Data Professional URL (`/dashboard.html` or `/property/detail.html`) with HMAC-SHA256 over the timestamp, the user's access token and our API key, and the browser opens it in a new tab.
 
 ## 5. How we get agent information
 
