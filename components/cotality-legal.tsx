@@ -11,7 +11,7 @@ import { useN3X7 } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-// Drop Cotality's supplied logo file here; until then the alt wording shows as text.
+// Cotality Logo, RGB Cream (for dark backgrounds), from Cotality Brand Resources, cropped to the artwork.
 const LOGO_SRC = "/cotality-logo.svg"
 
 /** Cotality's logo, once in the header of every section that shows Cotality data. */
@@ -25,7 +25,7 @@ export function CotalityLogo({ className }: { className?: string }) {
     )
   }
   return (
-    <img src={LOGO_SRC} alt={COTALITY_LOGO_ALT} onError={() => setFailed(true)} className={cn("h-4 w-auto shrink-0", className)} />
+    <img src={LOGO_SRC} alt={COTALITY_LOGO_ALT} onError={() => setFailed(true)} className={cn("h-6 w-auto shrink-0", className)} />
   )
 }
 
