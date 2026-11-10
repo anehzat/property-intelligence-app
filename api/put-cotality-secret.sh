@@ -7,7 +7,8 @@ AWS_PROFILE=n3x7
 REGION=ap-southeast-2
 SECRET_ID=n3x7/cotality
 ENV_FILE=${1:-$HOME/.config/n3x7/cotality.env}
-export COTALITY_BASE_URL=${COTALITY_BASE_URL:-https://api-sbox.corelogic.asia}
+# Data API: UAT https://api-uat.cotality.com.au, Production https://api.cotality.com.au (api-sbox.corelogic.asia is retired).
+export COTALITY_BASE_URL=${COTALITY_BASE_URL:-https://api-uat.cotality.com.au}
 export COTALITY_AUTH_BASE_URL=${COTALITY_AUTH_BASE_URL:-https://auth.corelogic.asia}
 export COTALITY_DATA_AUTH=${COTALITY_DATA_AUTH:-client}
 # Silent login: API key and integrator secret from Cotality; RP Professional base (UAT: https://rpp-uat.corelogic.com.au/rpp).

@@ -6,7 +6,7 @@ _Last updated 29 October 2026. Source of truth: `api/src/cotality.ts`, `api/src/
 
 This document lists every Cotality (formerly CoreLogic) API endpoint the N3X7 app calls, in the order it calls them, and the endpoints we plan to add.
 
-- **Environment:** Cotality sandbox, `https://api-sbox.corelogic.asia`.
+- **Environment:** Cotality UAT, `https://api-uat.cotality.com.au` (Production: `https://api.cotality.com.au`). The old sandbox, `api-sbox.corelogic.asia`, was retired in November 2026.
 - **Coverage:** the sandbox has data for three NSW suburbs only: Blacktown, Quakers Hill and Seven Hills.
 - **Auth:** OAuth 2.0 client credentials (application-level) today. The RP.Inside user login (authorization code, per-user tokens) is built and switches on once Cotality issues our user Client ID and Secret.
 
@@ -22,7 +22,7 @@ AWS API Gateway (HTTP API, Cognito JWT authorizer, throttled to 10 requests/seco
 AWS Lambda (n3x7-api)  ── reads client ID/secret from AWS Secrets Manager (n3x7/cotality)
    │  HTTPS + Cotality Bearer token
    ▼
-Cotality API (api-sbox.corelogic.asia)
+Cotality API (api-uat.cotality.com.au)
 ```
 
 The browser never calls Cotality directly and never sees the Cotality credentials or token. Our API exposes two routes:
