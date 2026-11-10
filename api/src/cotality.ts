@@ -58,7 +58,9 @@ export function createCotality(
       headers: { Authorization: `Basic ${basic}`, "Content-Length": "0" },
     })
     if (r.status === 429) throw new CotalityError(429, "Cotality token quota exceeded")
-    if (!r.ok) throw new CotalityError(401, "Cotality token request failed")
+    // OAuth rejects bad credentials with 400 or 401; anything else is an outage, not an auth failure.
+    if (r.status === 400 || r.status === 401) throw new CotalityError(401, "Cotality token request failed")
+    if (!r.ok) throw new CotalityError(r.status, `Cotality token endpoint responded ${r.status}`)
     const j = (await r.json()) as { access_token?: string; expires_in?: number }
     if (!j.access_token) throw new CotalityError(401, "Cotality token missing")
     token = { value: j.access_token, expiresAt: now() + (j.expires_in ?? 0) * 1000 }

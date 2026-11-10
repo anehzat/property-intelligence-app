@@ -88,6 +88,11 @@ test("failed token request throws CotalityError(401)", async () => {
   await assert.rejects(createCotality(creds, f.fn).saleCampaign(1), (e) => e instanceof CotalityError && e.status === 401)
 })
 
+test("token endpoint outage keeps its status instead of looking like bad credentials", async () => {
+  const f = fakeFetch(() => json({ fault: { faultstring: "Unable to identify proxy" } }, 404))
+  await assert.rejects(createCotality(creds, f.fn).saleCampaign(1), (e) => e instanceof CotalityError && e.status === 404)
+})
+
 test("suggestLocality returns the locality id and caches it", async () => {
   const f = fakeFetch((url) =>
     tokenOk(url) ??
