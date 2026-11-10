@@ -11,6 +11,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CotalityDisclaimers, CotalityLogo, OpenInRpData } from "./cotality-legal"
+import { BuildablePatterns } from "./buildable-patterns"
 
 type CampaignState =
   | { status: "loading" }
@@ -115,6 +116,8 @@ export function LiveDrawer() {
                   ? "Not scored yet. N3X7 score, frontage and LMR/TOD flags aren't available for live listings."
                   : "Frontage and LMR/TOD flags aren't available for live listings yet."}
               </div>
+
+              <BuildablePatterns lot={{ landSize: l.landSize, frontage: null }} />
 
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-foreground">Selling agent</h3>

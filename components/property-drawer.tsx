@@ -23,6 +23,7 @@ import {
 } from "@/lib/format"
 import { ScoreRing, ScoreBar } from "./score-card"
 import { ContractRequestPanel } from "./contract-request"
+import { BuildablePatterns } from "./buildable-patterns"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -211,6 +212,11 @@ export function PropertyDrawer() {
                   </div>
                 </div>
               </div>
+
+              <BuildablePatterns
+                lot={{ landSize: p.landSize, frontage: p.frontage }}
+                inLmrOrTod={p.lmr || p.tod}
+              />
 
               {/* Score breakdown */}
               {features.score && (
