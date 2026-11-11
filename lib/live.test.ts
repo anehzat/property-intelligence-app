@@ -13,10 +13,15 @@ test("listingsUrl encodes the query", () => {
     listingsUrl("https://api.test/", { suburb: "Blacktown", types: [], minLandArea: 0, page: 0 }),
     "https://api.test/listings?suburb=Blacktown&page=0",
   )
+  assert.equal(
+    listingsUrl("https://api.test", { suburb: "Blacktown", types: [], minLandArea: 0, page: 0 }, true),
+    "https://api.test/listings?suburb=Blacktown&page=0&auth=client",
+  )
 })
 
 test("campaignUrl", () => {
   assert.equal(campaignUrl("https://api.test", 42), "https://api.test/listings/42/campaign")
+  assert.equal(campaignUrl("https://api.test", 42, true), "https://api.test/listings/42/campaign?auth=client")
 })
 
 test("isListingsResponse checks the shape", () => {

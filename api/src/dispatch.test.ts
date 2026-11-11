@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { dataAuthFrom, handle } from "./dispatch.ts"
+import { dataAuthFrom, handle, skipEmailsFrom } from "./dispatch.ts"
 import type { RouteDeps } from "./routes.ts"
 
 test("dataAuthFrom returns user only for exactly user", () => {
@@ -8,6 +8,11 @@ test("dataAuthFrom returns user only for exactly user", () => {
   for (const s of [{}, null, undefined, { dataAuth: "User" }, { dataAuth: "client" }, { dataAuth: true }, "user"]) {
     assert.equal(dataAuthFrom(s), "client")
   }
+})
+
+test("skipEmailsFrom keeps only email strings, lowercased", () => {
+  assert.deepEqual(skipEmailsFrom({ skipEmails: [" Trong@Eronka.com ", 5, "nope", null] }), ["trong@eronka.com"])
+  for (const s of [{}, null, undefined, { skipEmails: "a@b.com" }]) assert.deepEqual(skipEmailsFrom(s), [])
 })
 
 test("a secret load failure returns 502 and never calls the route", async () => {

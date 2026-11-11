@@ -21,7 +21,7 @@ import type {
 import { defaultFilters, filterProperties, type Filters } from "./search"
 import { loadJSON, saveJSON } from "./persist"
 import { config } from "./config"
-import { connectErrorKey, isRpStatus, redirectUriFor, rpdataEnabled, rpdataUrl, shouldLoadLive } from "./rpdata"
+import { connectErrorKey, isRpStatus, redirectUriFor, rpdataEnabled, rpdataUrl, RPDATA_SKIP_KEY, shouldLoadLive } from "./rpdata"
 import type { RpErrorKey } from "./rpdata"
 import {
   centerOf,
@@ -49,7 +49,7 @@ export interface FlyTarget {
 
 export type DataSource = "demo" | "live"
 
-export type RpDataState = "unknown" | "linked" | "unlinked" | "disabled"
+export type RpDataState = "unknown" | "linked" | "unlinked" | "skipped" | "disabled"
 
 
 export interface LiveState {
@@ -111,6 +111,8 @@ interface N3X7State {
   connectRpData: (code: string) => Promise<{ ok: true } | { ok: false; error: RpErrorKey }>
   disconnectRpData: () => Promise<void>
   markRpDataUnlinked: () => void
+  rpCanSkip: boolean
+  skipRpData: () => void
 }
 
 const N3X7Context = createContext<N3X7State | null>(null)
@@ -151,6 +153,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
   const [rpdata, setRpdata] = useState<RpDataState>("unknown")
   const [rpUsername, setRpUsername] = useState<string | null>(null)
   const [rpSilentLogin, setRpSilentLogin] = useState(false)
+  const [rpCanSkip, setRpCanSkip] = useState(false)
   const [rpdataError, setRpdataError] = useState<string | null>(null)
   const [chat, setChat] = useState<ChatMessage[]>([
     {
@@ -233,8 +236,16 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
   }, [])
 
   const markRpDataUnlinked = useCallback(() => {
-    setRpdata((s) => (s === "disabled" ? s : "unlinked"))
+    setRpdata((s) => (s === "disabled" || s === "skipped" ? s : "unlinked"))
     setRpUsername(null)
+  }, [])
+
+  // Continue without an RP Data link for this browser session; live data uses the client credentials.
+  const skipRpData = useCallback(() => {
+    try {
+      sessionStorage.setItem(RPDATA_SKIP_KEY, "1")
+    } catch {}
+    setRpdata("skipped")
   }, [])
 
   useEffect(() => {
@@ -245,7 +256,7 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       try {
         const token = await getIdToken()
         if (!token) throw new Error("Your session has expired. Sign in again.")
-        const res = await fetchLive(listingsUrl(config.apiUrl, liveQuery), token, isListingsResponse)
+        const res = await fetchLive(listingsUrl(config.apiUrl, liveQuery, rpdata === "skipped"), token, isListingsResponse)
         if (cancelled) return
         setLive({ status: "ok", listings: res.listings, total: res.total, totalPages: res.totalPages, error: null })
         const center = centerOf(res.listings)
@@ -268,7 +279,12 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       const token = await getIdToken()
       if (!token) throw new Error("Your session has expired. Sign in again.")
       const s = await fetchLive(rpdataUrl(config.apiUrl, "status"), token, isRpStatus)
-      setRpdata(s.connected ? "linked" : "unlinked")
+      let skipped = false
+      try {
+        skipped = sessionStorage.getItem(RPDATA_SKIP_KEY) === "1"
+      } catch {}
+      setRpCanSkip(s.canSkip === true)
+      setRpdata(s.connected ? "linked" : skipped && s.canSkip === true ? "skipped" : "unlinked")
       setRpUsername(s.connected ? (s.username ?? null) : null)
       setRpSilentLogin(s.silentLogin === true)
     } catch {
@@ -290,6 +306,9 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       if (!r.ok) {
         return { ok: false as const, error: connectErrorKey(b.code) }
       }
+      try {
+        sessionStorage.removeItem(RPDATA_SKIP_KEY)
+      } catch {}
       setRpdata("linked")
       setRpUsername(typeof b.username === "string" ? b.username : null)
       return { ok: true as const }
@@ -344,6 +363,9 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
   // Signing out resets the demo session so each walkthrough starts clean.
   const signOut = useCallback(() => {
     signOutCognito()
+    try {
+      sessionStorage.removeItem(RPDATA_SKIP_KEY)
+    } catch {}
     setDrawerOpen(false)
     setUser(null)
     setSavedIds([])
@@ -435,6 +457,8 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       connectRpData,
       disconnectRpData,
       markRpDataUnlinked,
+      rpCanSkip,
+      skipRpData,
     }),
     [
       savedIds,
@@ -478,6 +502,8 @@ export function N3X7Provider({ children }: { children: ReactNode }) {
       connectRpData,
       disconnectRpData,
       markRpDataUnlinked,
+      rpCanSkip,
+      skipRpData,
     ],
   )
 

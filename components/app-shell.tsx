@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!user && !isLogin) router.replace("/login")
     else if (user && isLogin) router.replace("/")
     else if (user && rpdata === "unlinked" && !isRpData) router.replace("/connect-rpdata/")
-    else if (user && isConnectPage && (rpdata === "linked" || rpdata === "disabled")) router.replace("/")
+    else if (user && isConnectPage && (rpdata === "linked" || rpdata === "skipped" || rpdata === "disabled")) router.replace("/")
   }, [hydrated, user, isRpData, isLogin, isConnectPage, rpdata, router])
 
   if (isLogin) return <>{children}</>
