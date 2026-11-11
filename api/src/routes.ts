@@ -28,6 +28,8 @@ export interface RouteDeps {
   client: CotalityClient
   tokens: TokenManager
   dataAuth: "client" | "user"
+  /** Staff (verified Cognito emails) who may skip the RP Data step and use client credentials with ?auth=client. */
+  skipEmails?: string[]
   redirectOrigins: string[]
   /** Null until Cotality has issued the silent login API key and secret. */
   silent: SilentCreds | null
@@ -78,18 +80,25 @@ export async function route(
   let errorName: string | undefined
   let errorCode: string | undefined
   try {
-    const sub = event.requestContext?.authorizer?.jwt?.claims?.sub
+    const claims = event.requestContext?.authorizer?.jwt?.claims ?? {}
+    const sub = claims.sub
     const userId = typeof sub === "string" && sub ? sub : undefined
+    // Only a verified email counts, so a user can't rename themselves onto the list.
+    const verified = claims.email_verified === true || claims.email_verified === "true"
+    const email = verified && typeof claims.email === "string" ? claims.email.toLowerCase() : undefined
+    const canSkip = !!userId && !!email && (deps.skipEmails ?? []).includes(email)
     const requireUser = () => {
       if (!userId) throw new Unauthorized()
       return userId
     }
-    /** The user's Cotality token in "user" mode; undefined in "client" mode. */
-    const dataToken = async () => (deps.dataAuth === "user" ? tokens.accessToken(requireUser()) : undefined)
+    // A whitelisted user who skipped the RP Data step asks for the shared client credentials with ?auth=client.
+    const clientAuth = deps.dataAuth === "client" || (canSkip && event.queryStringParameters?.auth === "client")
+    /** The user's Cotality token in "user" mode; undefined with client credentials. */
+    const dataToken = async () => (clientAuth ? undefined : tokens.accessToken(requireUser()))
 
     if (event.routeKey === "GET /rpdata/status") {
       status = 200
-      return json(status, { ...(await tokens.status(requireUser())), silentLogin: deps.silent !== null })
+      return json(status, { ...(await tokens.status(requireUser())), silentLogin: deps.silent !== null, canSkip })
     }
     if (event.routeKey === "GET /rpdata/silent-login") {
       const id = requireUser()

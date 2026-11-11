@@ -3,6 +3,8 @@
 
 export const RPDATA_CALLBACK_PATH = "/auth/rpdata/callback/"
 export const RPDATA_STATE_KEY = "n3x7.rpdata.state"
+/** Set for the browser session when the user continues without linking RP Data. */
+export const RPDATA_SKIP_KEY = "n3x7.rpdata.skipped"
 
 const trim = (base: string) => base.replace(/\/+$/, "")
 
@@ -74,6 +76,8 @@ export interface RpStatus {
   username?: string
   /** True once Cotality's silent login key and secret are configured on the API. */
   silentLogin?: boolean
+  /** True when this staff user is on the API's list allowed to skip the RP Data step. */
+  canSkip?: boolean
 }
 
 export function isRpStatus(x: unknown): x is RpStatus {
@@ -98,7 +102,7 @@ export function isSilentLogin(x: unknown): x is { url: string } {
   return typeof url === "string" && url.startsWith("https://")
 }
 
-/** Data routes only work once the user is linked (or the RP Data step is off). */
-export function shouldLoadLive(rpdata: "unknown" | "linked" | "unlinked" | "disabled"): boolean {
-  return rpdata === "linked" || rpdata === "disabled"
+/** Data routes only work once the user is linked, skipped the step (client credentials), or the step is off. */
+export function shouldLoadLive(rpdata: "unknown" | "linked" | "unlinked" | "skipped" | "disabled"): boolean {
+  return rpdata === "linked" || rpdata === "skipped" || rpdata === "disabled"
 }

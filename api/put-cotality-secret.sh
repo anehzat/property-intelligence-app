@@ -11,6 +11,8 @@ ENV_FILE=${1:-$HOME/.config/n3x7/cotality.env}
 export COTALITY_BASE_URL=${COTALITY_BASE_URL:-https://api-uat.cotality.com.au}
 export COTALITY_AUTH_BASE_URL=${COTALITY_AUTH_BASE_URL:-https://auth.corelogic.asia}
 export COTALITY_DATA_AUTH=${COTALITY_DATA_AUTH:-client}
+# Comma-separated staff emails who may skip the RP Data step and use the client credentials.
+export COTALITY_SKIP_EMAILS=${COTALITY_SKIP_EMAILS:-}
 # Silent login: API key and integrator secret from Cotality; RP Professional base (UAT: https://rpp-uat.corelogic.com.au/rpp).
 export COTALITY_RPP_BASE_URL=${COTALITY_RPP_BASE_URL:-https://rpp.rpdata.com/rpp}
 
@@ -26,7 +28,7 @@ TMP=$(mktemp)
 chmod 600 "$TMP"
 trap 'rm -f "$TMP"' EXIT
 # Optional values are left out of the JSON when empty.
-python3 -c 'import json,os; e=os.environ.get; d={"clientId": e("COTALITY_CLIENT_ID"), "clientSecret": e("COTALITY_CLIENT_SECRET"), "baseUrl": e("COTALITY_BASE_URL"), "authBaseUrl": e("COTALITY_AUTH_BASE_URL"), "userClientId": e("COTALITY_USER_CLIENT_ID"), "userClientSecret": e("COTALITY_USER_CLIENT_SECRET"), "dataAuth": e("COTALITY_DATA_AUTH"), "silentApiKey": e("COTALITY_SILENT_API_KEY"), "silentSecret": e("COTALITY_SILENT_SECRET"), "rppBaseUrl": e("COTALITY_RPP_BASE_URL")}; print(json.dumps({k: v for k, v in d.items() if v}))' > "$TMP"
+python3 -c 'import json,os; e=os.environ.get; d={"clientId": e("COTALITY_CLIENT_ID"), "clientSecret": e("COTALITY_CLIENT_SECRET"), "baseUrl": e("COTALITY_BASE_URL"), "authBaseUrl": e("COTALITY_AUTH_BASE_URL"), "userClientId": e("COTALITY_USER_CLIENT_ID"), "userClientSecret": e("COTALITY_USER_CLIENT_SECRET"), "dataAuth": e("COTALITY_DATA_AUTH"), "silentApiKey": e("COTALITY_SILENT_API_KEY"), "silentSecret": e("COTALITY_SILENT_SECRET"), "rppBaseUrl": e("COTALITY_RPP_BASE_URL")}; d["skipEmails"] = [x.strip() for x in e("COTALITY_SKIP_EMAILS", "").split(",") if x.strip()]; print(json.dumps({k: v for k, v in d.items() if v}))' > "$TMP"
 
 if aws secretsmanager describe-secret --secret-id $SECRET_ID --region $REGION --profile $AWS_PROFILE > /dev/null 2>&1; then
   aws secretsmanager put-secret-value --secret-id $SECRET_ID --secret-string "file://$TMP" \

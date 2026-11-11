@@ -124,7 +124,7 @@ test("GET /rpdata/status returns the manager's status for claims.sub", async () 
   const tk = tokens()
   const r = await route({ routeKey: "GET /rpdata/status", requestContext: authed("u9") }, deps(client(), { tokens: tk }), silent)
   assert.equal(r.statusCode, 200)
-  assert.deepEqual(body(r), { connected: true, username: "u@x.com", silentLogin: false })
+  assert.deepEqual(body(r), { connected: true, username: "u@x.com", silentLogin: false, canSkip: false })
   assert.deepEqual(tk.calls, ["status:u9"])
   const on = await route(
     { routeKey: "GET /rpdata/status", requestContext: authed("u9") },
@@ -218,6 +218,55 @@ test("user mode without a link is 409 RPDATA_NOT_LINKED", async () => {
   )
   assert.equal(r.statusCode, 409)
   assert.deepEqual(body(r), { error: "RP Data not linked", code: "RPDATA_NOT_LINKED" })
+})
+
+const staff = (email = "trong@eronka.com", verified: unknown = "true") => ({
+  authorizer: { jwt: { claims: { sub: "user-1", email, email_verified: verified } } },
+})
+
+test("user mode ignores ?auth=client for anyone not on the skip list", async () => {
+  for (const ctx of [authed(), staff("someone@else.com"), staff("trong@eronka.com", "false")]) {
+    const tk = tokens()
+    const r = await route(
+      { routeKey: "GET /listings", queryStringParameters: { suburb: "Blacktown", auth: "client" }, requestContext: ctx },
+      deps(client(), { tokens: tk, dataAuth: "user", skipEmails: ["trong@eronka.com"] }),
+      silent,
+    )
+    assert.equal(r.statusCode, 200)
+    assert.deepEqual(tk.calls, ["token:user-1"])
+  }
+})
+
+test("GET /rpdata/status reports canSkip for a listed, verified email", async () => {
+  const d = deps(client(), { skipEmails: ["trong@eronka.com"] })
+  const yes = await route({ routeKey: "GET /rpdata/status", requestContext: staff("Trong@Eronka.com") }, d, silent)
+  assert.equal(body(yes).canSkip, true)
+  const no = await route({ routeKey: "GET /rpdata/status", requestContext: staff("x@y.com") }, d, silent)
+  assert.equal(body(no).canSkip, false)
+})
+
+test("a listed user with ?auth=client uses the client credentials", async () => {
+  const tk = tokens()
+  const seen: (string | undefined)[] = []
+  const c = client({
+    async suggestLocality(_q, t) { seen.push(t); return 1 },
+    async searchForSale(_l, _q, t) { seen.push(t); return {} },
+    async saleCampaign(_id, t) { seen.push(t); return {} },
+  })
+  const d = deps(c, { tokens: tk, dataAuth: "user", skipEmails: ["trong@eronka.com"] })
+  const listings = await route(
+    { routeKey: "GET /listings", queryStringParameters: { suburb: "Blacktown", auth: "client" }, requestContext: staff() },
+    d,
+    silent,
+  )
+  assert.equal(listings.statusCode, 200)
+  await route(
+    { routeKey: "GET /listings/{id}/campaign", pathParameters: { id: "5" }, queryStringParameters: { auth: "client" }, requestContext: staff() },
+    d,
+    silent,
+  )
+  assert.deepEqual(seen, [undefined, undefined, undefined])
+  assert.deepEqual(tk.calls, [])
 })
 
 test('user mode 401 from Cotality is 502 "Cotality rejected the RP Data token"', async () => {

@@ -48,8 +48,9 @@ function PhoneLink({ label, name, phone }: { label: string; name: string | null;
 }
 
 export function LiveDrawer() {
-  const { selectedLive: l, closeLive, isSaved, toggleSaveLive, markRpDataUnlinked } = useN3X7()
+  const { selectedLive: l, closeLive, isSaved, toggleSaveLive, markRpDataUnlinked, rpdata } = useN3X7()
   const [campaign, setCampaign] = useState<CampaignState>({ status: "loading" })
+  const clientAuth = rpdata === "skipped"
 
   useEffect(() => {
     if (!l) return
@@ -59,7 +60,7 @@ export function LiveDrawer() {
       try {
         const token = await getIdToken()
         if (!token) throw new LiveError(401, "Your session has expired. Sign in again.")
-        const c = await fetchLive(campaignUrl(config.apiUrl, l.cotalityId), token, isLiveCampaign)
+        const c = await fetchLive(campaignUrl(config.apiUrl, l.cotalityId, clientAuth), token, isLiveCampaign)
         if (!cancelled) setCampaign({ status: "ok", campaign: c })
       } catch (e) {
         if (e instanceof LiveError && e.status === 409) markRpDataUnlinked()
@@ -71,7 +72,7 @@ export function LiveDrawer() {
     return () => {
       cancelled = true
     }
-  }, [l, markRpDataUnlinked])
+  }, [l, markRpDataUnlinked, clientAuth])
 
   return (
     <Sheet open={!!l} onOpenChange={(o) => !o && closeLive()}>

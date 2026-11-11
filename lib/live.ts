@@ -58,16 +58,18 @@ export const defaultLiveQuery: LiveQuery = { suburb: "Blacktown", types: [], min
 
 const trim = (base: string) => base.replace(/\/+$/, "")
 
-export function listingsUrl(base: string, q: LiveQuery): string {
+export function listingsUrl(base: string, q: LiveQuery, clientAuth = false): string {
   const p = new URLSearchParams({ suburb: q.suburb, page: String(q.page) })
   if (q.types.length) p.set("types", q.types.join(","))
   if (q.minLandArea > 0) p.set("minLandArea", String(q.minLandArea))
+  // Asks the API for the shared client credentials instead of the user's RP Data link.
+  if (clientAuth) p.set("auth", "client")
   // %20, not "+", for spaces: API Gateway passes "+" through literally.
   return `${trim(base)}/listings?${p.toString().replace(/\+/g, "%20")}`
 }
 
-export function campaignUrl(base: string, cotalityId: number): string {
-  return `${trim(base)}/listings/${cotalityId}/campaign`
+export function campaignUrl(base: string, cotalityId: number, clientAuth = false): string {
+  return `${trim(base)}/listings/${cotalityId}/campaign${clientAuth ? "?auth=client" : ""}`
 }
 
 export function isListingsResponse(x: unknown): x is ListingsResponse {

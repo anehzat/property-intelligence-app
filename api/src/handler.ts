@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEventV2 } from "aws-lambda"
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager"
 import { createCotality, type Creds } from "./cotality.ts"
-import { handle } from "./dispatch.ts"
+import { handle, skipEmailsFrom } from "./dispatch.ts"
 import { loadLegal, type LegalSection } from "./legal.ts"
 import { createRpAuth, type AuthCreds } from "./rpdata-auth.ts"
 import { silentFrom } from "./rpdata-silent.ts"
@@ -79,6 +79,7 @@ export async function handler(event: APIGatewayProxyEventV2) {
     client: cotality,
     tokens,
     dataAuth,
+    skipEmails: skipEmailsFrom(secret),
     redirectOrigins,
     silent: silentFrom(secret),
     legal,

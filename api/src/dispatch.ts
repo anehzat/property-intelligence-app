@@ -5,6 +5,13 @@ export function dataAuthFrom(secret: unknown): "client" | "user" {
   return (secret as { dataAuth?: unknown } | null)?.dataAuth === "user" ? "user" : "client"
 }
 
+/** Lowercased staff emails allowed to skip the RP Data step; empty unless the secret lists them. */
+export function skipEmailsFrom(secret: unknown): string[] {
+  const list = (secret as { skipEmails?: unknown } | null)?.skipEmails
+  if (!Array.isArray(list)) return []
+  return list.filter((e): e is string => typeof e === "string" && e.includes("@")).map((e) => e.trim().toLowerCase())
+}
+
 let loggedMode: "client" | "user" | undefined
 
 /** Fails closed: if the secret cannot be loaded, nothing is called and the answer is 502. */

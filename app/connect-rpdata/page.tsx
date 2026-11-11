@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { AuthCard } from "@/components/auth-card"
 
 export default function ConnectRpDataPage() {
-  const { signOut } = useN3X7()
+  const { signOut, rpCanSkip, skipRpData } = useN3X7()
   const [error, setError] = useState<string | null>(null)
 
   // The callback page passes a failure key; only known keys map to a fixed message.
@@ -44,13 +44,25 @@ export default function ConnectRpDataPage() {
       <Button className="w-full" onClick={connect}>
         Connect RP Data
       </Button>
-      <button
-        type="button"
-        onClick={signOut}
-        className="block text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
-      >
-        Sign out
-      </button>
+      <div className="flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={signOut}
+          className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        >
+          Sign out
+        </button>
+        {/* Only staff on the API's skip list see this; the API enforces the same list. */}
+        {rpCanSkip && (
+          <button
+            type="button"
+            onClick={skipRpData}
+            className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            Skip for now
+          </button>
+        )}
+      </div>
     </AuthCard>
   )
 }
