@@ -118,7 +118,7 @@ export function LiveDrawer() {
                   : "Frontage and LMR/TOD flags aren't available for live listings yet."}
               </div>
 
-              <BuildablePatterns lot={{ landSize: l.landSize, frontage: null }} />
+              <BuildablePatterns lot={{ landSize: l.landSize, frontage: null }} at={{ lat: l.lat, lng: l.lng }} />
 
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-foreground">Selling agent</h3>

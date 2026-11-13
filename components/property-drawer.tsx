@@ -216,6 +216,7 @@ export function PropertyDrawer() {
               <BuildablePatterns
                 lot={{ landSize: p.landSize, frontage: p.frontage }}
                 inLmrOrTod={p.lmr || p.tod}
+                at={{ lat: p.lat, lng: p.lng }}
               />
 
               {/* Score breakdown */}
